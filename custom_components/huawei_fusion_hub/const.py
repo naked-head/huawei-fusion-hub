@@ -27,10 +27,16 @@ CONF_NOTIFY_ON_DISCONNECT = "notify_on_disconnect"
 CONF_AGGREGATE_CONTROLS = "aggregate_controls"
 CONF_STALE_TIMEOUT = "stale_timeout"
 CONF_OVERRIDES = "overrides"
+CONF_DERIVED_SENSORS = "derived_sensors"
+CONF_RESERVE_SOC = "reserve_soc"
+CONF_BATTERY_CAPACITY = "battery_capacity"
 
 DEFAULT_NOTIFY_ON_DISCONNECT = True
 DEFAULT_AGGREGATE_CONTROLS = False
 DEFAULT_STALE_TIMEOUT = 0  # 0 = disabled
+DEFAULT_DERIVED_SENSORS = True
+DEFAULT_RESERVE_SOC = 5.0
+DEFAULT_BATTERY_CAPACITY = 0.0  # 0 = read from the inverter
 
 # A source is considered offline when the fraction of its mapped
 # entities in unavailable/unknown exceeds this threshold.
@@ -39,6 +45,23 @@ SOURCE_OFFLINE_THRESHOLD = 0.8
 ATTR_SOURCE = "source"
 ATTR_SOURCE_ENTITY = "source_entity"
 ATTR_CANDIDATES = "candidates"
+ATTR_ESTIMATION_METHOD = "estimation_method"
+ATTR_SAMPLES = "samples"
+ATTR_WINDOW_SECONDS = "window_seconds"
+ATTR_CAPACITY = "capacity_kwh"
+ATTR_RESERVE_SOC = "reserve_soc"
+ATTR_POWER_VARIATION = "power_variation"
+ATTR_CONFIDENCE = "confidence"
+
+# --- Canonical keys read by the derived estimator ---
+KEY_BATTERY_SOC = "battery_soc"
+KEY_BATTERY_POWER = "battery_power"
+KEY_BATTERY_CAPACITY = "battery_rated_capacity"
+
+# --- Derived (calculated) sensor keys ---
+KEY_TIME_TO_FULL = "battery_estimated_time_to_full"
+KEY_TIME_TO_MINIMUM = "battery_estimated_time_to_minimum"
+DERIVED_KEYS = [KEY_TIME_TO_FULL, KEY_TIME_TO_MINIMUM]
 
 # --- Hub device groups ---
 DEVICE_HUB = "hub"

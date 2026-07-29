@@ -26,6 +26,20 @@
         "data": {
           "aggregate_controls": "Aggrega entità switch e select"
         }
+      },
+      "derived": {
+        "title": "Stime di autonomia della batteria",
+        "description": "L'hub può pubblicare due sensori calcolati: tempo stimato alla carica completa e tempo stimato fino a un SoC di riserva. Sono derivati dalla potenza e dal SoC che l'hub già aggrega — nessuna interrogazione aggiuntiva. Restano stime: assumono che il regime di carica o scarica attuale si mantenga, quindi si muovono al variare delle condizioni e sono meno affidabili subito dopo un riavvio di Home Assistant, mentre la finestra di campionamento si riempie.",
+        "data": {
+          "derived_sensors": "Crea le stime di autonomia",
+          "reserve_soc": "Livello minimo di carica",
+          "battery_capacity": "Capacità batteria (override)"
+        },
+        "data_description": {
+          "derived_sensors": "Aggiunge sensor.hf_hub_battery_estimated_time_to_full e sensor.hf_hub_battery_estimated_time_to_minimum. Disattiva per un hub di solo passthrough.",
+          "reserve_soc": "La stima conta fino a questo stato di carica, non fino a zero. Allinealo al SoC di fine scarica impostato nell'inverter.",
+          "battery_capacity": "Lascia 0 per leggere la capacità nominale dall'inverter. Imposta un valore solo se le tue sorgenti non la pubblicano, o per compensare una batteria la cui capacità reale è calata con l'invecchiamento."
+        }
       }
     },
     "error": {
@@ -64,6 +78,20 @@
         "description": "Le integrazioni sorgente (Huawei Solar via Modbus) espongono controlli scrivibili: accensione inverter, modalità batteria, carica dalla rete, setpoint di potenza, carica forzata e altri.\n\n**Consigliamo di lasciare questa opzione DISATTIVATA.** I controlli esistono solo sulla connessione Modbus — non c'è un equivalente cloud su cui fare failover, quindi duplicarli non offre alcun vantaggio di resilienza e crea due entità che fanno la stessa cosa, generando confusione in automazioni e dashboard.\n\nAttivala solo se vuoi che dashboard e automazioni facciano riferimento esclusivamente alle entità `hf_hub`, controlli inclusi. Le entità hub (switch, select, number, button) rispecchiano lo stato della sorgente e inoltrano ogni comando all'entità originale.",
         "data": {
           "aggregate_controls": "Aggrega entità switch e select"
+        }
+      },
+      "derived": {
+        "title": "Stime di autonomia della batteria",
+        "description": "L'hub può pubblicare due sensori calcolati: tempo stimato alla carica completa e tempo stimato fino a un SoC di riserva. Sono derivati dalla potenza e dal SoC che l'hub già aggrega — nessuna interrogazione aggiuntiva. Restano stime: assumono che il regime di carica o scarica attuale si mantenga, quindi si muovono al variare delle condizioni e sono meno affidabili subito dopo un riavvio di Home Assistant, mentre la finestra di campionamento si riempie.",
+        "data": {
+          "derived_sensors": "Crea le stime di autonomia",
+          "reserve_soc": "Livello minimo di carica",
+          "battery_capacity": "Capacità batteria (override)"
+        },
+        "data_description": {
+          "derived_sensors": "Aggiunge sensor.hf_hub_battery_estimated_time_to_full e sensor.hf_hub_battery_estimated_time_to_minimum. Disattiva per un hub di solo passthrough.",
+          "reserve_soc": "La stima conta fino a questo stato di carica, non fino a zero. Allinealo al SoC di fine scarica impostato nell'inverter.",
+          "battery_capacity": "Lascia 0 per leggere la capacità nominale dall'inverter. Imposta un valore solo se le tue sorgenti non la pubblicano, o per compensare una batteria la cui capacità reale è calata con l'invecchiamento."
         }
       }
     },
@@ -769,6 +797,12 @@
       },
       "battery_unit_2_pack_3_total_charge": {
         "name": "Pacco 3 carica totale"
+      },
+      "battery_estimated_time_to_full": {
+        "name": "Tempo stimato alla carica completa"
+      },
+      "battery_estimated_time_to_minimum": {
+        "name": "Tempo stimato al livello minimo"
       }
     },
     "binary_sensor": {
