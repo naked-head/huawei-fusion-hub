@@ -9,8 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Battery runtime estimates (optional, on by default): `sensor.hf_hub_battery_time_to_full` and `sensor.hf_hub_battery_time_to_empty`, computed from the aggregated battery power, SoC and rated capacity. No extra polling and no recorder dependency — samples are kept in a rolling in-memory window, so both sensors stay unknown for the first minutes after a restart.
+- Estimates are not published below 100 W of battery power, nor when the arithmetic exceeds 24 hours: near the idle threshold a linear estimate reaches tens of hours, and a value clamped to a ceiling would be presented as a real reading.
+- Config flow step for the estimates: enable/disable, reserve SoC for the discharge target (default 5%), and a capacity override for sources that do not publish the rated capacity or for batteries whose real capacity has dropped with age.
+- Two estimation methods, reported per sensor in the `estimation_method` attribute. `energy` (missing energy over current power) is the default; `soc_rate` (missing percentage over the observed SoC slope) takes over above 95% SoC while charging, where cell balancing breaks the assumption that SoC is linear in stored energy. `soc_rate` is used only when the SoC comes from Huawei Solar (Modbus) and the slope is measurable above quantization noise; cloud sources always use `energy` with a wider sample window.
+- `power_variation` and `confidence` attributes on both estimates: the coefficient of variation of the power over the window, and a `high`/`medium`/`low` label derived from it together with how much of the window is filled. The estimate assumes the current rate holds until the target, and these say how well that assumption held.
+- Unit tests for the estimator (`tests/test_derived.py`), wired into the test workflow.
 - Energy Dashboard migration guide ([ENERGY_MIGRATION.md](ENERGY_MIGRATION.md)) with step-by-step instructions for transferring long-term statistics from source integration entities to hub entities
 - README section linking to the migration guide with disclaimer
+
+### Fixed
+
+- Options flow no longer drops `overrides` when saving: keys not managed by the flow are carried over instead of being replaced.
 
 ## [0.6.2] - 2026-07-11
 

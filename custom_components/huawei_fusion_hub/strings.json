@@ -26,6 +26,20 @@
         "data": {
           "aggregate_controls": "Aggregate switch and select entities"
         }
+      },
+      "derived": {
+        "title": "Battery runtime estimates",
+        "description": "The hub can publish two calculated sensors: estimated time to a full charge and estimated time down to a reserve state of charge. They are derived from the battery power and SoC already aggregated by the hub — no extra polling. Both are estimates: they assume the current charge or discharge rate holds, so they move as conditions change and are least accurate right after a Home Assistant restart, while the sample window fills up.",
+        "data": {
+          "derived_sensors": "Create battery runtime estimates",
+          "reserve_soc": "Reserve state of charge",
+          "battery_capacity": "Battery capacity override"
+        },
+        "data_description": {
+          "derived_sensors": "Adds sensor.hf_hub_battery_time_to_full and sensor.hf_hub_battery_time_to_empty. Turn off for a pure pass-through hub.",
+          "reserve_soc": "The discharge estimate counts down to this SoC, not to zero. Match it to the end-of-discharge SoC configured in your inverter.",
+          "battery_capacity": "Leave at 0 to read the rated capacity from the inverter. Set a value only if your sources do not publish it, or to compensate for a battery whose real capacity has dropped with age."
+        }
       }
     },
     "error": {
@@ -64,6 +78,20 @@
         "description": "The source integrations (Huawei Solar via Modbus) expose writable controls: inverter on/off, battery working mode, charge from grid, power setpoints, forcible charge, and others.\n\n**We recommend leaving this OFF.** Controls exist only on the Modbus connection — there is no cloud equivalent to fail over to, so duplicating them provides no resilience benefit and creates two entities that do the same thing, which can be confusing in automations and dashboards.\n\nEnable this only if you specifically want your dashboards and automations to reference `hf_hub` entities exclusively, including controls. The hub entities (switch, select, number, button) mirror the source state and forward every command to the original entity.",
         "data": {
           "aggregate_controls": "Aggregate switch and select entities"
+        }
+      },
+      "derived": {
+        "title": "Battery runtime estimates",
+        "description": "The hub can publish two calculated sensors: estimated time to a full charge and estimated time down to a reserve state of charge. They are derived from the battery power and SoC already aggregated by the hub — no extra polling. Both are estimates: they assume the current charge or discharge rate holds, so they move as conditions change and are least accurate right after a Home Assistant restart, while the sample window fills up.",
+        "data": {
+          "derived_sensors": "Create battery runtime estimates",
+          "reserve_soc": "Reserve state of charge",
+          "battery_capacity": "Battery capacity override"
+        },
+        "data_description": {
+          "derived_sensors": "Adds sensor.hf_hub_battery_time_to_full and sensor.hf_hub_battery_time_to_empty. Turn off for a pure pass-through hub.",
+          "reserve_soc": "The discharge estimate counts down to this SoC, not to zero. Match it to the end-of-discharge SoC configured in your inverter.",
+          "battery_capacity": "Leave at 0 to read the rated capacity from the inverter. Set a value only if your sources do not publish it, or to compensate for a battery whose real capacity has dropped with age."
         }
       }
     },
@@ -736,6 +764,12 @@
       },
       "battery_unit_2_pack_3_total_charge": {
         "name": "Pack 3 total charge"
+      },
+      "battery_time_to_full": {
+        "name": "Time to full charge"
+      },
+      "battery_time_to_empty": {
+        "name": "Time to reserve charge"
       }
     },
     "binary_sensor": {

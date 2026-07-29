@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from time import monotonic
 from typing import Any
 
 from homeassistant.core import Event, HomeAssistant, callback
@@ -23,17 +24,27 @@ from homeassistant.util.unit_conversion import (
 
 from .const import (
     CONF_AGGREGATE_CONTROLS,
+    CONF_BATTERY_CAPACITY,
+    CONF_DERIVED_SENSORS,
     CONF_NOTIFY_ON_DISCONNECT,
     CONF_OVERRIDES,
     CONF_PRIORITY,
+    CONF_RESERVE_SOC,
+    DEFAULT_BATTERY_CAPACITY,
+    DEFAULT_DERIVED_SENSORS,
+    DEFAULT_RESERVE_SOC,
     DEVICE_NAMES,
     DOMAIN,
+    KEY_BATTERY_CAPACITY,
+    KEY_BATTERY_POWER,
+    KEY_BATTERY_SOC,
     SIGNAL_NEW_KEYS,
     SOURCE_NAMES,
     SOURCE_OFFLINE_THRESHOLD,
     STORAGE_KEY,
     STORAGE_VERSION,
 )
+from .derived import BatteryRuntimeEstimator
 from .mapping import (
     CONTROL_DEFS,
     SENSOR_DEFS,
@@ -45,6 +56,16 @@ from .notifications import get_texts
 _LOGGER = logging.getLogger(__name__)
 
 BAD_STATES = ("unavailable", "unknown", None, "")
+
+
+def _as_float(resolved) -> float | None:
+    """Numeric value of a ResolvedValue, or None when missing/non-numeric."""
+    if resolved is None or resolved.value is None:
+        return None
+    try:
+        return float(resolved.value)
+    except (TypeError, ValueError):
+        return None
 
 
 @dataclass
@@ -71,6 +92,28 @@ class HubCoordinator(DataUpdateCoordinator[dict[str, ResolvedValue]]):
             CONF_AGGREGATE_CONTROLS,
             entry.data.get(CONF_AGGREGATE_CONTROLS, False),
         )
+        self.derived_enabled: bool = entry.options.get(
+            CONF_DERIVED_SENSORS,
+            entry.data.get(CONF_DERIVED_SENSORS, DEFAULT_DERIVED_SENSORS),
+        )
+        self.estimator: BatteryRuntimeEstimator | None = None
+        if self.derived_enabled:
+            self.estimator = BatteryRuntimeEstimator(
+                reserve_soc=float(
+                    entry.options.get(
+                        CONF_RESERVE_SOC,
+                        entry.data.get(CONF_RESERVE_SOC, DEFAULT_RESERVE_SOC),
+                    )
+                ),
+                capacity_override=float(
+                    entry.options.get(
+                        CONF_BATTERY_CAPACITY,
+                        entry.data.get(
+                            CONF_BATTERY_CAPACITY, DEFAULT_BATTERY_CAPACITY
+                        ),
+                    )
+                ),
+            )
         # control_key -> {source: entity_id} (switch/select proxies)
         self.control_candidates: dict[str, dict[str, str]] = {}
         # canonical_key -> {source: entity_id}
@@ -409,7 +452,37 @@ class HubCoordinator(DataUpdateCoordinator[dict[str, ResolvedValue]]):
         for key, per_source in self.candidates.items():
             data[key] = self._resolve(key, per_source)
         self._update_source_availability()
+        self._update_derived(data)
         self.async_set_updated_data(data)
+
+    @property
+    def derived_available(self) -> bool:
+        """Whether the derived battery estimates can be produced at all."""
+        if self.estimator is None:
+            return False
+        if not {KEY_BATTERY_SOC, KEY_BATTERY_POWER} <= set(self.candidates):
+            return False
+        return (
+            KEY_BATTERY_CAPACITY in self.candidates
+            or self.estimator.capacity_override is not None
+        )
+
+    def _update_derived(self, data: dict[str, ResolvedValue]) -> None:
+        """Feed the runtime estimator with the resolved battery values."""
+        if self.estimator is None:
+            return
+
+        soc = data.get(KEY_BATTERY_SOC)
+        power = data.get(KEY_BATTERY_POWER)
+        capacity = data.get(KEY_BATTERY_CAPACITY)
+
+        self.estimator.update(
+            monotonic(),
+            _as_float(power),
+            _as_float(soc),
+            _as_float(capacity),
+            soc.source if soc else None,
+        )
 
     def _resolve(self, key: str, per_source: dict[str, str]) -> ResolvedValue:
         sensor_def = SENSOR_DEFS_BY_KEY[key]
