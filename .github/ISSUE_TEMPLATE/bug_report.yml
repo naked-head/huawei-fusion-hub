@@ -1,12 +1,72 @@
 name: Bug Report
 description: Report a problem with the Huawei Fusion Hub integration
-labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Before opening an issue, please check if a similar one already exists.
-        Logs are essential — without them it is very hard to diagnose the problem.
+        ## Before you continue
+
+        This integration **does not talk to your inverter or to any Huawei cloud
+        service**. It only reads entity states that the source integrations
+        ([Huawei Solar](https://github.com/wlcrs/huawei_solar),
+        [FusionSolar](https://github.com/tijsverkoyen/HomeAssistant-FusionSolar),
+        [FusionSolarPlus](https://github.com/JortvanSchijndel/FusionSolarPlus))
+        have already published in Home Assistant.
+
+        So if a value is wrong, the first question is always: **is it wrong here,
+        or was it already wrong at the source?** Every hub sensor exposes `source`
+        and `source_entity` attributes — open the entity, look at those two, then
+        compare the hub value with the source entity's own value. If they match,
+        the problem is upstream and needs to be reported there, where the
+        maintainer can actually act on it.
+
+        Please paste logs and configuration **here as text**, not as email
+        attachments or external links.
+
+  - type: checkboxes
+    id: confirm-scope
+    attributes:
+      label: Confirm this report belongs here
+      options:
+        - label: >-
+            I am aware that naked-head is a grumpy maintainer, so it can happen that
+            my issue will be closed quickly when essential information is missing
+            (no logs, no version, no description, etc.).
+          required: true
+        - label: >-
+            This is about the hub's own behavior — aggregation, failover, entity
+            creation, options — and not about a value that is already wrong in the
+            source integration.
+          required: true
+        - label: >-
+            I have checked the `source` and `source_entity` attributes of the
+            affected hub entity, and compared its value with the source entity it
+            points to.
+          required: true
+        - label: I have read the README before opening this issue.
+          required: true
+        - label: My Home Assistant version is up to date.
+          required: true
+        - label: >-
+            I am using the latest release of this integration (or the latest
+            pre-release, if I am testing a beta).
+          required: true
+        - label: >-
+            I have checked existing issues (including closed ones) to make sure
+            this isn't a duplicate.
+          required: true
+        - label: I have prepared DEBUG log output for this report.
+          required: true
+        - label: >-
+            I confirm this is really an issue with the integration, and not a
+            question or a request for general Home Assistant support.
+          required: true
+        - label: |
+            I confirm that I did not actually read any of the points above and just checked them all. |
+            I didn't want to waste time on details, so I skipped reading or following any existing instructions. |
+            Instead, I'd like naked-head to spend their free time explaining things to me — that's what open source is for, right? |
+            I live by the motto: better to ask twice than think once. |
+            It's naked-head's own fault for offering open-source software and free support.
 
   - type: input
     id: integration_version
@@ -58,17 +118,33 @@ body:
       required: true
 
   - type: textarea
+    id: affected_entities
+    attributes:
+      label: Affected entities
+      description: |
+        The hub entities involved, with their `source` and `source_entity` attributes,
+        and the current value of the source entity they point to.
+      placeholder: |
+        sensor.hf_hub_battery_soc = 47
+          source: huawei_solar
+          source_entity: sensor.batteria_state_of_capacity = 63
+    validations:
+      required: false
+
+  - type: textarea
     id: logs
     attributes:
       label: Relevant log output
       description: |
-        Enable debug logging first — add this to `configuration.yaml`, restart HA, reproduce the issue, then paste the relevant lines here.
-```yaml
+        Enable debug logging first — add this to `configuration.yaml`, restart HA,
+        reproduce the issue, then paste the relevant lines here.
+
+        ```yaml
         logger:
           default: warning
           logs:
             custom_components.huawei_fusion_hub: debug
-```
+        ```
       render: text
     validations:
       required: true

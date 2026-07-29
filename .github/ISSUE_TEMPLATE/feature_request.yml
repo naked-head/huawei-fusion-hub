@@ -1,0 +1,114 @@
+name: Feature Request
+description: Suggest an idea for the Huawei Fusion Hub integration
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Before you continue
+
+        This integration is an **aggregator**. It does not talk to your inverter or
+        to any Huawei cloud service — it re-publishes, with failover, what the source
+        integrations
+        ([Huawei Solar](https://github.com/wlcrs/huawei_solar),
+        [FusionSolar](https://github.com/tijsverkoyen/HomeAssistant-FusionSolar),
+        [FusionSolarPlus](https://github.com/JortvanSchijndel/FusionSolarPlus))
+        already expose in Home Assistant.
+
+        That sets a hard limit on what can be added here: **the hub can only expose a
+        quantity that at least one source integration already publishes.** If you want
+        a new register read from the inverter, or a value none of the three sources
+        provide, that request belongs upstream with the integration that owns the
+        connection — no amount of work on this repository can conjure data that never
+        arrives.
+
+        Before asking for a new sensor, check
+        [ENTITY_MAP.md](https://github.com/naked-head/huawei-fusion-hub/blob/main/ENTITY_MAP.md):
+        it lists every quantity the hub knows about and which source provides it.
+
+  - type: checkboxes
+    id: confirm-scope
+    attributes:
+      label: Confirm this request belongs here
+      options:
+        - label: >-
+            I am aware that naked-head is a grumpy maintainer, so it can happen that
+            my issue will be closed quickly when essential information is missing
+            (no description, no use case, etc.).
+          required: true
+        - label: >-
+            This is about the hub itself — aggregation, failover, options, entity
+            structure — and not a feature of a source integration or of the inverter.
+          required: true
+        - label: >-
+            If I am asking for a new sensor: I have checked ENTITY_MAP.md, and at
+            least one of the three source integrations actually publishes this
+            quantity in Home Assistant.
+          required: true
+        - label: I have read the README and this isn't already covered.
+          required: true
+        - label: >-
+            I have checked existing issues (including closed ones) to make sure
+            this isn't a duplicate request.
+          required: true
+        - label: |
+            I confirm that I did not actually read any of the points above and just checked them all. |
+            I didn't want to waste time on details, so I skipped reading or following any existing instructions. |
+            Instead, I'd like naked-head to spend their free time explaining things to me — that's what open source is for, right? |
+            I live by the motto: better to ask twice than think once. |
+            It's naked-head's own fault for offering open-source software and free support.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the feature
+      description: What would you like to see, and why?
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: What problem does this solve for you? How would you use it in practice — an automation, a dashboard, something else?
+    validations:
+      required: true
+
+  - type: textarea
+    id: source_entities
+    attributes:
+      label: Source entities involved
+      description: |
+        If you are asking for a new aggregated quantity, list the source entities that
+        already provide it, with their integration and their `unique_id` if you can
+        find it (Developer Tools → States, or the entity registry).
+      placeholder: |
+        huawei_solar: sensor.inverter_internal_temperature (unique_id: internal_temperature)
+        fusionsolarplus: sensor.inverter_temperature
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: sources
+    attributes:
+      label: Sources you have configured
+      options:
+        - label: Huawei Solar (Modbus)
+        - label: FusionSolar
+        - label: FusionSolarPlus
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you have considered
+      description: Template sensors, automations, other integrations — what have you tried, and why isn't it enough?
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Anything else that helps — screenshots, links to upstream documentation, register numbers, etc.
+    validations:
+      required: false
