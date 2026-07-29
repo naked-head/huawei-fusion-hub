@@ -37,6 +37,7 @@ A [Home Assistant](https://www.home-assistant.io/) integration that aggregates d
 - **Initial summary notification**: on first setup, a persistent notification reports how many entities were created, grouped per device and per source.
 - **Optional control aggregation**: switch, select, number and button entities (inverter on/off, battery working mode, power setpoints, forcible charge…) can be proxied through the hub — off by default, with the rationale explained in the config flow.
 - **Native entity categories**: measurements, Diagnostic (statuses, identifiers) and Configuration (control proxies) are separated in each device page, mirroring the source integrations' layout.
+- **Battery runtime estimates** (optional, on by default): estimated time to a full charge and time down to a minimum charge level, calculated from data the hub already aggregates — no extra polling.
 - **Multi-language**: UI and entity names in English and Italian.
 
 ---
@@ -115,6 +116,51 @@ A hub sensor is created only when at least one configured source provides that q
 The FusionSolar column of the map covers both **Kiosk** mode (plant-level sensors) and **Northbound/OpenAPI** mode (per-device realtime data), so the hub takes full advantage of an OpenAPI account when available.
 
 📋 **Full entity correspondence table: [ENTITY_MAP.md](ENTITY_MAP.md)**
+
+---
+
+## Battery runtime estimates
+
+Two optional calculated sensors, enabled by default and switchable from the config flow:
+
+| Entity | Meaning |
+| ------ | ------- |
+| `sensor.hf_hub_battery_estimated_time_to_full` | Minutes to 100% SoC. Unknown while discharging or idle. |
+| `sensor.hf_hub_battery_estimated_time_to_minimum` | Minutes down to the minimum charge level. Unknown while charging or idle. |
+
+They require `battery_soc` and `battery_power`, plus either `battery_rated_capacity` from a source or a manual capacity in the options. Samples live in a rolling in-memory window fed by the coordinator, so nothing is written to the recorder and both sensors read unknown for the first minutes after a Home Assistant restart, while the window fills up.
+
+Nothing is published below 100 W, or when the arithmetic exceeds 24 hours. Just above the idle threshold — a house drawing 110 W overnight — a linear estimate runs into the tens of hours, and a number clamped to a ceiling would look like a real reading. Unknown is the only honest answer there, so expect gaps during quiet periods.
+
+### These are estimates
+
+Both numbers assume the current charge or discharge rate holds until the target. It never quite does, so expect them to move — that is the sensor working, not a bug. Two methods are used, and each sensor reports which one produced its current value in the `estimation_method` attribute:
+
+- **`energy`** — missing energy divided by current power. Reacts immediately when the power changes (a cloud, an oven switching on), but trusts the rated capacity and assumes the SoC is linear in stored energy.
+- **`soc_rate`** — missing percentage divided by the observed SoC slope. Trusts neither, so it stays right on an aged battery or during cell balancing, but it describes the recent past and lags a sudden change in power.
+
+The two are algebraically identical whenever the capacity is correct and the SoC is linear in energy, which is most of the time. `energy` is therefore the default. `soc_rate` takes over only above 95% SoC while charging — where the inverter tapers and the BMS balances, so energy keeps flowing without the SoC following — and only when the SoC comes from Huawei Solar (Modbus) and its slope is measurable above quantization noise. Cloud sources always use `energy`, with a wider sample window to compensate for their update rate.
+
+Discharge always uses `energy`: that stretch of the curve is close to linear, and reacting quickly to a change in household load matters more there.
+
+On first upgrade the hub raises a one-off persistent notification announcing the two sensors and pointing at the options; it is not repeated, and fresh installations do not get it since the config flow already covers the subject.
+
+### Options
+
+| Option | Default | Notes |
+| ------ | ------- | ----- |
+| Create battery runtime estimates | on | Turn off for a pure pass-through hub |
+| Minimum charge level | 5% | The discharge estimate counts down to this, not to zero. Match it to the end-of-discharge SoC set in your inverter |
+| Battery capacity override | 0 (auto) | Only needed if no source publishes the rated capacity, or to compensate for capacity lost to ageing |
+
+### How much to trust a given reading
+
+Every estimate assumes the current rate holds until the target. How well that assumption held over the window is measured and published:
+
+- **`power_variation`** — the coefficient of variation of the power over the window, as a percentage. Near zero means the rate was steady; a large value means the estimate is extrapolating from something that was not constant. Four hours estimated on solar charging under a clear sky and four hours estimated while an oven, a washing machine and a heat pump take turns are the same number with different meanings, and this is the difference.
+- **`confidence`** — `high`, `medium` or `low`, derived from `power_variation` together with how much of the window is actually filled. The underlying measure is measured; where the cuts fall is a judgement call and may be re-tuned.
+
+Other attributes — `samples`, `window_seconds`, `capacity_kwh` and `source` — describe the data the estimate was built from. Please include all of them when reporting an estimate that looks wrong.
 
 ---
 

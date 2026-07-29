@@ -25,3 +25,5 @@ jobs:
         run: python tests/test_normalize.py
       - name: Run rediscovery tests
         run: python tests/test_rediscovery.py
+      - name: Run derived estimate tests
+        run: python tests/test_derived.py

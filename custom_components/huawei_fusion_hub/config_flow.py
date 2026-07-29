@@ -8,6 +8,9 @@ from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     BooleanSelector,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
@@ -17,15 +20,44 @@ from homeassistant.helpers.selector import (
 from .const import (
     ALL_SOURCES,
     CONF_AGGREGATE_CONTROLS,
+    CONF_BATTERY_CAPACITY,
+    CONF_DERIVED_SENSORS,
     CONF_NOTIFY_ON_DISCONNECT,
     CONF_OVERRIDES,
     CONF_PRIORITY,
+    CONF_RESERVE_SOC,
     CONF_SOURCES,
     DEFAULT_AGGREGATE_CONTROLS,
+    DEFAULT_BATTERY_CAPACITY,
+    DEFAULT_DERIVED_SENSORS,
     DEFAULT_NOTIFY_ON_DISCONNECT,
+    DEFAULT_RESERVE_SOC,
     DOMAIN,
     SOURCE_NAMES,
 )
+
+
+def _derived_schema(
+    enabled: bool, reserve: float, capacity: float
+) -> vol.Schema:
+    """Shared schema for the derived-sensors step of both flows."""
+    return vol.Schema(
+        {
+            vol.Required(CONF_DERIVED_SENSORS, default=enabled): BooleanSelector(),
+            vol.Required(CONF_RESERVE_SOC, default=reserve): NumberSelector(
+                NumberSelectorConfig(
+                    min=0, max=50, step=1, mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="%",
+                )
+            ),
+            vol.Required(CONF_BATTERY_CAPACITY, default=capacity): NumberSelector(
+                NumberSelectorConfig(
+                    min=0, max=100, step=0.1, mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="kWh",
+                )
+            ),
+        }
+    )
 
 
 def _installed_sources(hass) -> list[str]:
@@ -49,6 +81,7 @@ class HuaweiFusionHubConfigFlow(ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._sources: list[str] = []
         self._priority: list[str] = []
+        self._controls: bool = DEFAULT_AGGREGATE_CONTROLS
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -116,15 +149,8 @@ class HuaweiFusionHubConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> Any:
         if user_input is not None:
-            return self.async_create_entry(
-                title="Huawei Fusion Hub",
-                data={
-                    CONF_SOURCES: self._priority,
-                    CONF_PRIORITY: self._priority,
-                    CONF_NOTIFY_ON_DISCONNECT: DEFAULT_NOTIFY_ON_DISCONNECT,
-                    CONF_AGGREGATE_CONTROLS: user_input[CONF_AGGREGATE_CONTROLS],
-                },
-            )
+            self._controls = user_input[CONF_AGGREGATE_CONTROLS]
+            return await self.async_step_derived()
         return self.async_show_form(
             step_id="controls",
             data_schema=vol.Schema(
@@ -134,6 +160,31 @@ class HuaweiFusionHubConfigFlow(ConfigFlow, domain=DOMAIN):
                         default=DEFAULT_AGGREGATE_CONTROLS,
                     ): BooleanSelector()
                 }
+            ),
+        )
+
+    async def async_step_derived(
+        self, user_input: dict[str, Any] | None = None
+    ) -> Any:
+        if user_input is not None:
+            return self.async_create_entry(
+                title="Huawei Fusion Hub",
+                data={
+                    CONF_SOURCES: self._priority,
+                    CONF_PRIORITY: self._priority,
+                    CONF_NOTIFY_ON_DISCONNECT: DEFAULT_NOTIFY_ON_DISCONNECT,
+                    CONF_AGGREGATE_CONTROLS: self._controls,
+                    CONF_DERIVED_SENSORS: user_input[CONF_DERIVED_SENSORS],
+                    CONF_RESERVE_SOC: user_input[CONF_RESERVE_SOC],
+                    CONF_BATTERY_CAPACITY: user_input[CONF_BATTERY_CAPACITY],
+                },
+            )
+        return self.async_show_form(
+            step_id="derived",
+            data_schema=_derived_schema(
+                DEFAULT_DERIVED_SENSORS,
+                DEFAULT_RESERVE_SOC,
+                DEFAULT_BATTERY_CAPACITY,
             ),
         )
 
@@ -151,7 +202,11 @@ class HubOptionsFlow(OptionsFlow):
         self._sources: list[str] = []
         self._priority: list[str] = []
         self._notify: bool = True
+        self._controls: bool = False
         self._controls_default: bool = False
+
+    def _current(self, key: str, default: Any) -> Any:
+        return self._entry.options.get(key, self._entry.data.get(key, default))
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -247,18 +302,8 @@ class HubOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> Any:
         if user_input is not None:
-            data = {
-                CONF_SOURCES: self._sources,
-                CONF_PRIORITY: self._priority,
-                CONF_NOTIFY_ON_DISCONNECT: self._notify,
-                CONF_AGGREGATE_CONTROLS: user_input[CONF_AGGREGATE_CONTROLS],
-            }
-            # keys not managed by this flow (e.g. per-entity overrides set
-            # via the registry) must be carried over, not dropped
-            overrides = self._entry.options.get(CONF_OVERRIDES)
-            if overrides:
-                data[CONF_OVERRIDES] = overrides
-            return self.async_create_entry(title="", data=data)
+            self._controls = user_input[CONF_AGGREGATE_CONTROLS]
+            return await self.async_step_derived()
         return self.async_show_form(
             step_id="controls",
             data_schema=vol.Schema(
@@ -268,5 +313,34 @@ class HubOptionsFlow(OptionsFlow):
                         default=self._controls_default,
                     ): BooleanSelector()
                 }
+            ),
+        )
+
+    async def async_step_derived(
+        self, user_input: dict[str, Any] | None = None
+    ) -> Any:
+        if user_input is not None:
+            data = {
+                CONF_SOURCES: self._sources,
+                CONF_PRIORITY: self._priority,
+                CONF_NOTIFY_ON_DISCONNECT: self._notify,
+                CONF_AGGREGATE_CONTROLS: self._controls,
+                CONF_DERIVED_SENSORS: user_input[CONF_DERIVED_SENSORS],
+                CONF_RESERVE_SOC: user_input[CONF_RESERVE_SOC],
+                CONF_BATTERY_CAPACITY: user_input[CONF_BATTERY_CAPACITY],
+            }
+            # options replace the whole dict: carry over keys not managed
+            # by this flow, or they would be silently dropped
+            overrides = self._entry.options.get(CONF_OVERRIDES)
+            if overrides:
+                data[CONF_OVERRIDES] = overrides
+            return self.async_create_entry(title="", data=data)
+
+        return self.async_show_form(
+            step_id="derived",
+            data_schema=_derived_schema(
+                self._current(CONF_DERIVED_SENSORS, DEFAULT_DERIVED_SENSORS),
+                self._current(CONF_RESERVE_SOC, DEFAULT_RESERVE_SOC),
+                self._current(CONF_BATTERY_CAPACITY, DEFAULT_BATTERY_CAPACITY),
             ),
         )
