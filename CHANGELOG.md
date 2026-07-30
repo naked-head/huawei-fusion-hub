@@ -31,7 +31,7 @@ makes the hub survive it. No configuration change is required.
 
 ### Added
 
-- Battery runtime estimates (optional, on by default): `sensor.hf_hub_battery_estimated_time_to_full` and `sensor.hf_hub_battery_estimated_time_to_minimum`, computed from the aggregated battery power, SoC and rated capacity. No extra polling and no recorder dependency — samples are kept in a rolling in-memory window, so both sensors stay unknown for the first minutes after a restart.
+- Battery runtime estimates (optional, on by default): `sensor.hf_hub_battery_estimated_time_to_full` and `sensor.hf_hub_battery_estimated_time_to_minimum`, computed from the aggregated battery power, SoC and rated capacity. Published as `duration` sensors in seconds, so the frontend renders them as hours and minutes rather than a raw minute count. No extra polling and no recorder dependency — samples are kept in a rolling in-memory window, so both sensors stay unknown for the first minutes after a restart.
 - Estimates are not published below 100 W of battery power, nor when the arithmetic exceeds 24 hours: near the idle threshold a linear estimate reaches tens of hours, and a value clamped to a ceiling would be presented as a real reading.
 - One-off persistent notification on the upgrade that adds the estimates, explaining what they are and where to turn them off. Not shown on fresh installations, where the config flow already covers it.
 - Config flow step for the estimates: enable/disable, minimum charge level for the discharge target (default 5%), and a capacity override for sources that do not publish the rated capacity or for batteries whose real capacity has dropped with age.
@@ -53,6 +53,10 @@ makes the hub survive it. No configuration change is required.
 ### Fixed
 
 - Options flow no longer drops `overrides` when saving: keys not managed by the flow are carried over instead of being replaced.
+
+### Changed
+
+- Availability binary sensors renamed from "<source> available" to "<source> connection", so the name agrees with the Connected/Disconnected state the connectivity device class produces. Display name only: unique IDs and entity IDs are unchanged, and no migration is needed.
 
 ### Fixed
 

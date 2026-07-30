@@ -813,13 +813,13 @@
     },
     "binary_sensor": {
       "hf_hub_huawei_solar_available": {
-        "name": "Huawei Solar (Modbus) available"
+        "name": "Huawei Solar (Modbus) connection"
       },
       "hf_hub_fusion_solar_available": {
-        "name": "FusionSolar available"
+        "name": "FusionSolar connection"
       },
       "hf_hub_fusionsolarplus_available": {
-        "name": "FusionSolarPlus available"
+        "name": "FusionSolarPlus connection"
       }
     },
     "switch": {
