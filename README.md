@@ -29,7 +29,7 @@ A [Home Assistant](https://www.home-assistant.io/) integration that aggregates d
 ## Features
 
 - **Priority-based failover**: for every quantity, the hub uses the highest-priority source that is currently available. Priority is configurable from the UI at any time — including adding or removing sources.
-- **221 canonical sensors** — the complete union of quantities from all three sources, including single-source entities. Sensors are grouped into logical devices: **Inverter**, **Battery**, **Battery Unit 1/2**, **Power Meter** and **Plant**.
+- **232 canonical sensors** — the complete union of quantities from all three sources, including single-source entities. Sensors are grouped into logical devices: **Inverter**, **Battery**, **Battery Unit 1/2**, **Power Meter**, **Plant** and **EMMA**.
 - **Stable entity IDs**: automations and dashboards keep working regardless of which source is active. Every hub sensor exposes `source` and `source_entity` attributes so you always know where the value is coming from.
 - **Automatic unit normalization**: values are converted to canonical units (W, kWh, °C) even when sources report differently (kW vs W, Wh vs kWh).
 - **Dynamic rediscovery**: when a source integration is added or re-enabled, the hub automatically discovers and creates the new hub entities — no restart needed — and notifies you with grouped counts.
@@ -97,7 +97,7 @@ This procedure renames the existing `statistic_id` entries in the Home Assistant
 
 ## Exposed entities
 
-The hub exposes **221 canonical sensors** grouped into logical devices. The full correspondence table between hub entities and source entities is in **[ENTITY_MAP.md](ENTITY_MAP.md)**.
+The hub exposes **232 canonical sensors** grouped into logical devices. The full correspondence table between hub entities and source entities is in **[ENTITY_MAP.md](ENTITY_MAP.md)**.
 
 | Device | Entities |
 |---|---|
@@ -107,6 +107,7 @@ The hub exposes **221 canonical sensors** grouped into logical devices. The full
 | Battery Unit 1 | 62 — unit-level and per-pack (3 packs): voltage, power, SoC, temperatures, discharge energy… |
 | Battery Unit 2 | 61 — same as Unit 1 |
 | Plant | 18 — realtime power, daily/monthly/yearly/total energy, consumption, self-consumption ratios, flows… |
+| EMMA | 11 — capacity control parameters (peak shaving, peak power, working mode, feed-in/mains limits, AC charge, PV priority). FusionSolarPlus-only, unverified: no EMMA hardware available for testing. |
 | Controls (opt-in) | 18 — switch/select/number/button proxies: inverter on/off, working modes, power setpoints, SOC limits, forcible charge |
 
 A hub sensor is created only when at least one configured source provides that quantity. Sensors only available from a single source have no failover but keep a stable entity name.
