@@ -98,8 +98,4 @@ body:
       label: Additional context
       description: Anything else that helps — screenshots, links to upstream documentation, register numbers, etc.
     validations:
-<<<<<<< HEAD
       required: false
-=======
-      required: false
->>>>>>> 24a4225 (feat: battery runtime estimates (time to full / time to reserve))
