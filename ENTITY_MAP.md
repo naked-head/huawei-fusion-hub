@@ -9,7 +9,9 @@ for FusionSolarPlus; **device model : attribute** (unique_id
 `fusion_solar-{id}-{attribute}`) for FusionSolar — plant rows use the Kiosk
 sensor ids, device rows use the Northbound/OpenAPI realtime device attributes
 (model prefixes: `Residential inverter`, `String inverter`, `Battery`,
-`Power Sensor`, `Grid meter`).
+`Power Sensor`, `Grid meter`). FusionSolarPlus device models are the
+device types of its config flow: `Inverter`, `Battery`, `Power Sensor`,
+`Plant` and `SmartAssistant` (EMMA).
 
 A hub entity is created when **at least one** configured source provides the
 quantity; single-source entities have no failover but keep a stable name.
@@ -64,22 +66,22 @@ statuses and identifiers are **Diagnostic**, writable proxies are **Configuratio
 | Hub entity (`sensor.hf_hub_…`) | Huawei Solar (Modbus) | FusionSolarPlus | FusionSolar |
 |---|---|---|---|
 | `meter_status` | `meter_status` | `Power Sensor:10001` | `Power Sensor:meter_status` |
-| `meter_active_power` | `power_meter_active_power` | `Power Sensor:10004`, `Power Sensor:11207`, `Power Sensor:2101271` | `Power Sensor:active_power`, `Grid meter:active_power` |
-| `meter_reactive_power` | `power_meter_reactive_power` | `Power Sensor:10005`, `Power Sensor:11208`, `Power Sensor:2101272` | `Power Sensor:reactive_power`, `Grid meter:reactive_power` |
-| `meter_power_factor` | `active_grid_power_factor` | `Power Sensor:10006`, `Power Sensor:10014`, `Power Sensor:2101280` | `Power Sensor:power_factor`, `Grid meter:power_factor` |
+| `meter_active_power` | `power_meter_active_power` | `Power Sensor:10004`, `Power Sensor:11207`, `Power Sensor:2101271`, `SmartAssistant:11207` | `Power Sensor:active_power`, `Grid meter:active_power` |
+| `meter_reactive_power` | `power_meter_reactive_power` | `Power Sensor:10005`, `Power Sensor:11208`, `Power Sensor:2101272`, `SmartAssistant:11208` | `Power Sensor:reactive_power`, `Grid meter:reactive_power` |
+| `meter_power_factor` | `active_grid_power_factor` | `Power Sensor:10006`, `Power Sensor:10014`, `Power Sensor:2101280`, `SmartAssistant:10014` | `Power Sensor:power_factor`, `Grid meter:power_factor` |
 | `meter_frequency` | `active_grid_frequency` | `Power Sensor:10007` | `Power Sensor:grid_frequency`, `Grid meter:grid_frequency`, `Residential inverter:elec_freq` |
-| `grid_exported_energy` | `grid_exported_energy` | `Power Sensor:10008`, `Power Sensor:11116` | `Power Sensor:reverse_active_cap`, `Grid meter:reverse_active_cap` |
-| `grid_imported_energy` | `grid_accumulated_energy` | `Power Sensor:10009`, `Power Sensor:11115` | `Power Sensor:active_cap`, `Grid meter:active_cap` |
+| `grid_exported_energy` | `grid_exported_energy` | `Power Sensor:10008`, `Power Sensor:11116`, `SmartAssistant:11116` | `Power Sensor:reverse_active_cap`, `Grid meter:reverse_active_cap` |
+| `grid_imported_energy` | `grid_accumulated_energy` | `Power Sensor:10009`, `Power Sensor:11115`, `SmartAssistant:11115` | `Power Sensor:active_cap`, `Grid meter:active_cap` |
 | `meter_reactive_energy` | `grid_accumulated_reactive_power` | — | — |
-| `meter_phase_a_voltage` | `grid_a_voltage` | `Power Sensor:10002`, `Power Sensor:11204`, `Power Sensor:2101256` | `Power Sensor:a_u`, `Grid meter:a_u` |
-| `meter_phase_a_current` | `active_grid_a_current` | `Power Sensor:10003`, `Power Sensor:2101268` | `Power Sensor:a_i`, `Grid meter:a_i` |
-| `meter_phase_a_active_power` | `active_grid_a_power` | `Power Sensor:10019`, `Power Sensor:2101281` | `Power Sensor:active_power_a`, `Grid meter:active_power_a` |
-| `meter_phase_b_voltage` | `grid_b_voltage` | `Power Sensor:10010`, `Power Sensor:11205`, `Power Sensor:2101257` | `Power Sensor:b_u`, `Grid meter:b_u` |
-| `meter_phase_b_current` | `active_grid_b_current` | `Power Sensor:10012`, `Power Sensor:2101269` | `Power Sensor:b_i`, `Grid meter:b_i` |
-| `meter_phase_b_active_power` | `active_grid_b_power` | `Power Sensor:10020`, `Power Sensor:2101282` | `Power Sensor:active_power_b`, `Grid meter:active_power_b` |
-| `meter_phase_c_voltage` | `grid_c_voltage` | `Power Sensor:10011`, `Power Sensor:11206`, `Power Sensor:2101264` | `Power Sensor:c_u`, `Grid meter:c_u` |
-| `meter_phase_c_current` | `active_grid_c_current` | `Power Sensor:10013`, `Power Sensor:2101270` | `Power Sensor:c_i`, `Grid meter:c_i` |
-| `meter_phase_c_active_power` | `active_grid_c_power` | `Power Sensor:10021`, `Power Sensor:2101283` | `Power Sensor:active_power_c`, `Grid meter:active_power_c` |
+| `meter_phase_a_voltage` | `grid_a_voltage` | `Power Sensor:10002`, `Power Sensor:11204`, `Power Sensor:2101256`, `SmartAssistant:11204` | `Power Sensor:a_u`, `Grid meter:a_u` |
+| `meter_phase_a_current` | `active_grid_a_current` | `Power Sensor:10003`, `Power Sensor:2101268`, `SmartAssistant:10009` | `Power Sensor:a_i`, `Grid meter:a_i` |
+| `meter_phase_a_active_power` | `active_grid_a_power` | `Power Sensor:10019`, `Power Sensor:2101281`, `SmartAssistant:11209` | `Power Sensor:active_power_a`, `Grid meter:active_power_a` |
+| `meter_phase_b_voltage` | `grid_b_voltage` | `Power Sensor:10010`, `Power Sensor:11205`, `Power Sensor:2101257`, `SmartAssistant:11205` | `Power Sensor:b_u`, `Grid meter:b_u` |
+| `meter_phase_b_current` | `active_grid_b_current` | `Power Sensor:10012`, `Power Sensor:2101269`, `SmartAssistant:10010` | `Power Sensor:b_i`, `Grid meter:b_i` |
+| `meter_phase_b_active_power` | `active_grid_b_power` | `Power Sensor:10020`, `Power Sensor:2101282`, `SmartAssistant:11210` | `Power Sensor:active_power_b`, `Grid meter:active_power_b` |
+| `meter_phase_c_voltage` | `grid_c_voltage` | `Power Sensor:10011`, `Power Sensor:11206`, `Power Sensor:2101264`, `SmartAssistant:11206` | `Power Sensor:c_u`, `Grid meter:c_u` |
+| `meter_phase_c_current` | `active_grid_c_current` | `Power Sensor:10013`, `Power Sensor:2101270`, `SmartAssistant:10011` | `Power Sensor:c_i`, `Grid meter:c_i` |
+| `meter_phase_c_active_power` | `active_grid_c_power` | `Power Sensor:10021`, `Power Sensor:2101283`, `SmartAssistant:11211` | `Power Sensor:active_power_c`, `Grid meter:active_power_c` |
 | `meter_line_voltage_a_b` | `active_grid_a_b_voltage` | `Power Sensor:2101252` | `Power Sensor:ab_u`, `Grid meter:ab_u` |
 | `meter_line_voltage_b_c` | `active_grid_b_c_voltage` | `Power Sensor:2101253` | `Power Sensor:bc_u`, `Grid meter:bc_u` |
 | `meter_line_voltage_c_a` | `active_grid_c_a_voltage` | `Power Sensor:2101254` | `Power Sensor:ca_u`, `Grid meter:ca_u` |
@@ -267,6 +269,40 @@ statuses and identifiers are **Diagnostic**, writable proxies are **Configuratio
 | `flow_load_power` | — | `Plant:flow_load_power` | — |
 | `flow_grid_power` | — | `Plant:flow_grid_power` | — |
 
+## EMMA / Smart Assistant (11 entities)
+
+Configuration parameters published by FusionSolarPlus 2.3.5 and later for
+devices of model `SmartAssistant`. They come from a separate endpoint that
+FusionSolarPlus refreshes at most every five minutes, and they are read-only:
+there is no failover and no write-through proxy. `huawei_solar` offers the
+comparable settings as writable `number` and `select` controls (see the
+Controls section below), while FusionSolar does not expose them at all.
+
+The device group is created only when an EMMA is present. Every entity is
+Diagnostic except `emma_peak_power`, the only one that changes on its own as
+the peak shaving schedule moves from one period to the next. Enumerations are
+published as plain text, because the hub does not carry the source option list.
+The schedule details of the peak power setting (`periods`, `period_count`,
+`config_updated_at`) remain attributes of the FusionSolarPlus entity and are
+not copied to the hub entity.
+
+> **Unverified.** These rows were derived from the FusionSolarPlus source
+> code and have never been tested against a real EMMA installation.
+
+| Hub entity (`sensor.hf_hub_…`) | Huawei Solar (Modbus) | FusionSolarPlus | FusionSolar |
+|---|---|---|---|
+| `emma_peak_power` | — | `SmartAssistant:230700179` | — |
+| `emma_peak_shaving_mode` | — | `SmartAssistant:230700177` | — |
+| `emma_peak_shaving_backup_soc` | — | `SmartAssistant:230700178` | — |
+| `emma_working_mode` | — | `SmartAssistant:21021` | — |
+| `emma_active_power_control_mode` | — | `SmartAssistant:21115` | — |
+| `emma_max_grid_feed_in_power` | — | `SmartAssistant:21098` | — |
+| `emma_max_mains_power` | — | `SmartAssistant:230700200` | — |
+| `emma_allowed_ac_charge_power` | — | `SmartAssistant:21110` | — |
+| `emma_charge_from_ac` | — | `SmartAssistant:230700278` | — |
+| `emma_grid_charge_cutoff_soc` | — | `SmartAssistant:230700279` | — |
+| `emma_pv_power_priority` | — | `SmartAssistant:230700180` | — |
+
 ## Controls — write-through proxies (18 entities, opt-in)
 
 Created only when "Aggregate control entities" is enabled in the config
@@ -296,4 +332,4 @@ configuration step for why leaving them disabled is recommended.
 | `battery_peak_shaving_soc` | `number` | `storage_capacity_control_soc_peak_shaving` | — | — |
 | `battery_stop_forcible_charge` | `button` | `stop_forcible_charge` | — | — |
 
-**Total hub entities: 221 sensors + 18 optional controls**
+**Total hub entities: 232 sensors + 18 optional controls**

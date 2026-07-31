@@ -467,6 +467,39 @@
       "flow_grid_power": {
         "name": "Flow grid power"
       },
+      "emma_peak_power": {
+        "name": "Peak power"
+      },
+      "emma_peak_shaving_mode": {
+        "name": "Peak shaving mode"
+      },
+      "emma_peak_shaving_backup_soc": {
+        "name": "Peak shaving backup SOC"
+      },
+      "emma_working_mode": {
+        "name": "Working mode"
+      },
+      "emma_active_power_control_mode": {
+        "name": "Active power control mode"
+      },
+      "emma_max_grid_feed_in_power": {
+        "name": "Maximum grid feed-in power"
+      },
+      "emma_max_mains_power": {
+        "name": "Maximum mains power"
+      },
+      "emma_allowed_ac_charge_power": {
+        "name": "Allowed AC charge power"
+      },
+      "emma_charge_from_ac": {
+        "name": "Charge from AC"
+      },
+      "emma_grid_charge_cutoff_soc": {
+        "name": "Grid charge cutoff SOC"
+      },
+      "emma_pv_power_priority": {
+        "name": "PV power priority"
+      },
       "battery_unit_1_pack_1_no": {
         "name": "Pack 1 no."
       },

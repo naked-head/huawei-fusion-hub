@@ -19,22 +19,38 @@ jobs:
 
       - name: Get version from tag
         id: version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+        run: |
+          echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+          BASE="${GITHUB_REF_NAME#v}"; BASE="${BASE%%-*}"
+          echo "BASE_VERSION=${BASE}" >> $GITHUB_OUTPUT
 
       - name: Update manifest version
         run: |
+          # full tag version, suffix included: an installed pre-release must
+          # identify itself as such in Home Assistant's integration panel
           sed -i 's/"version": ".*"/"version": "${{ steps.version.outputs.VERSION }}"/' \
             custom_components/huawei_fusion_hub/manifest.json
 
       - name: Extract changelog section
         id: changelog
         run: |
-          awk -v ver="${{ steps.version.outputs.VERSION }}" '
+          awk -v ver="${{ steps.version.outputs.BASE_VERSION }}" '
             $0 ~ "^## \\[" ver "\\]" { found=1; next }
             found && /^## \[/ { exit }
             found && /^\[.*\]: http/ { exit }
             found { print }
           ' CHANGELOG.md > release_notes.md
+          # a pre-release tagged before the CHANGELOG section is renamed still
+          # has its content under [Unreleased]: fall back to it instead of
+          # publishing empty release notes
+          if [ ! -s release_notes.md ]; then
+            awk '
+              /^## \[Unreleased\]/ { found=1; next }
+              found && /^## \[/ { exit }
+              found && /^\[.*\]: http/ { exit }
+              found { print }
+            ' CHANGELOG.md > release_notes.md
+          fi
           echo "Extracted notes:"
           cat release_notes.md
 
@@ -49,5 +65,5 @@ jobs:
           name: "huawei-fusion-hub ${{ github.ref_name }}"
           body_path: release_notes.md
           draft: false
-          prerelease: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
           files: huawei_fusion_hub.zip
