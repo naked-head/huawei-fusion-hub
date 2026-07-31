@@ -7,10 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-31
+
 ### Added
 
 - Energy Dashboard migration guide ([ENERGY_MIGRATION.md](ENERGY_MIGRATION.md)) with step-by-step instructions for transferring long-term statistics from source integration entities to hub entities
 - README section linking to the migration guide with disclaimer
+- EMMA / Smart Assistant support for FusionSolarPlus 2.3.5 and later: 11 new sensors in a dedicated `EMMA (HF Hub)` device group, covering the capacity control parameters (peak shaving mode, peak power, backup SoC for peak shaving, grid charge cutoff SoC, allowed AC charge power, maximum mains power, maximum grid feed-in power, active power control mode, working mode, charge from AC, PV power priority). The device group is created only when an EMMA is present, so nothing changes on installations without one.
+- EMMA realtime signals now feed the existing `meter_*` and `grid_*` entities (active, reactive and per-phase power, per-phase voltage and current, power factor, imported and exported energy). On an EMMA plant the Smart Assistant *is* the meter, so these gain a real failover path alongside Modbus and FusionSolar. The EMMA patterns are appended last, so a plant that already has a dedicated Power Sensor resolves exactly as before.
+- **These EMMA entities are unverified.** They were derived from the FusionSolarPlus source code and could not be tested against a real EMMA installation. Reports from EMMA owners are welcome — in particular on whether all 11 configuration signals are returned for non-installer accounts and across EMMA hardware variants. FusionSolarPlus publishes the parameters read-only, so a wrong mapping can only produce a wrong reading, never a wrong write.
+- The peak power entity reports the limit of the schedule period that is active now. The schedule details FusionSolarPlus attaches to its own entity (`periods`, `period_count`, `config_updated_at`) are not copied to the hub entity; read them from the FusionSolarPlus entity if you need them.
+- Issue templates for bug reports and feature requests, with a "grumpy maintainer" disclaimer checkbox and a honeypot field.
+
+### Changed
+
+- Release workflow now flags pre-release tags (`vX.Y.Z-suffix`) as GitHub pre-releases instead of publishing every tag as a stable release, and falls back to the `[Unreleased]` changelog section when a pre-release tag has no matching version heading yet.
+
+### Fixed
+
+- Options flow no longer drops `overrides` when saving: keys not managed by the flow are carried over instead of being replaced.
 
 ## [0.6.2] - 2026-07-11
 
@@ -105,7 +120,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Options flow to change priority and alert behavior without restart.
 - English and Italian translations.
 
-[Unreleased]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.5.0...v0.6.0

@@ -28,6 +28,7 @@ from .const import (
     DEVICE_BATTERY,
     DEVICE_BATTERY_UNIT_1,
     DEVICE_BATTERY_UNIT_2,
+    DEVICE_EMMA,
     DEVICE_INVERTER,
     DEVICE_METER,
     DEVICE_PLANT,
@@ -50,6 +51,8 @@ FS_GM = "Grid meter"
 BAT = "Battery"
 PWS = "Power Sensor"
 PLT = "Plant"
+# EMMA / Smart Assistant: FSP stores "SmartAssistant" as the device model
+EMMA = "SmartAssistant"
 
 
 @dataclass(frozen=True)
@@ -171,6 +174,7 @@ def _build() -> list[HubSensorDef]:
     defs: list[HubSensorDef] = []
     d = defs.append
     DI, DM, DB, DP = DEVICE_INVERTER, DEVICE_METER, DEVICE_BATTERY, DEVICE_PLANT
+    DE = DEVICE_EMMA
 
     # ---------------- Inverter ----------------
     d(_def("inverter_rated_power", "Rated power", DI, "power",
@@ -276,40 +280,54 @@ def _build() -> list[HubSensorDef]:
            fs=[f"{FS_PWS}:meter_status"], diagnostic=True))
     d(_def("meter_active_power", "Active power", DM, "power",
            hs="power_meter_active_power",
-           fsp=[f"{PWS}:10004", f"{PWS}:11207", f"{PWS}:2101271"],
+           fsp=[f"{PWS}:10004", f"{PWS}:11207", f"{PWS}:2101271",
+                f"{EMMA}:11207"],
            icon="mdi:transmission-tower",
            fs=[f"{FS_PWS}:active_power", f"{FS_GM}:active_power"]))
     d(_def("meter_reactive_power", "Reactive power", DM, "reactive",
            hs="power_meter_reactive_power",
-           fsp=[f"{PWS}:10005", f"{PWS}:11208", f"{PWS}:2101272"],
+           fsp=[f"{PWS}:10005", f"{PWS}:11208", f"{PWS}:2101272",
+                f"{EMMA}:11208"],
            fs=[f"{FS_PWS}:reactive_power", f"{FS_GM}:reactive_power"]))
     d(_def("meter_power_factor", "Power factor", DM, "pf",
            hs="active_grid_power_factor",
-           fsp=[f"{PWS}:10006", f"{PWS}:10014", f"{PWS}:2101280"],
+           fsp=[f"{PWS}:10006", f"{PWS}:10014", f"{PWS}:2101280",
+                f"{EMMA}:10014"],
            fs=[f"{FS_PWS}:power_factor", f"{FS_GM}:power_factor"]))
     d(_def("meter_frequency", "Grid frequency", DM, "freq",
            hs="active_grid_frequency", fsp=f"{PWS}:10007",
            fs=[f"{FS_PWS}:grid_frequency", f"{FS_GM}:grid_frequency", f"{FS_RINV}:elec_freq"]))
     d(_def("grid_exported_energy", "Grid exported energy", DM, "energy",
-           hs="grid_exported_energy", fsp=[f"{PWS}:10008", f"{PWS}:11116"],
+           hs="grid_exported_energy",
+           fsp=[f"{PWS}:10008", f"{PWS}:11116", f"{EMMA}:11116"],
            icon="mdi:transmission-tower-import",
            fs=[f"{FS_PWS}:reverse_active_cap", f"{FS_GM}:reverse_active_cap"]))
     d(_def("grid_imported_energy", "Grid imported energy", DM, "energy",
-           hs="grid_accumulated_energy", fsp=[f"{PWS}:10009", f"{PWS}:11115"],
+           hs="grid_accumulated_energy",
+           fsp=[f"{PWS}:10009", f"{PWS}:11115", f"{EMMA}:11115"],
            icon="mdi:transmission-tower-export",
            fs=[f"{FS_PWS}:active_cap", f"{FS_GM}:active_cap"]))
     d(_def("meter_reactive_energy", "Reactive energy", DM, "text",
            hs="grid_accumulated_reactive_power", icon="mdi:counter", diagnostic=True))
     for ph, (hsv, fspv, hsc, fspc, hsp, fspp) in {
-        "a": ("grid_a_voltage", [f"{PWS}:10002", f"{PWS}:11204", f"{PWS}:2101256"],
-              "active_grid_a_current", [f"{PWS}:10003", f"{PWS}:2101268"],
-              "active_grid_a_power", [f"{PWS}:10019", f"{PWS}:2101281"]),
-        "b": ("grid_b_voltage", [f"{PWS}:10010", f"{PWS}:11205", f"{PWS}:2101257"],
-              "active_grid_b_current", [f"{PWS}:10012", f"{PWS}:2101269"],
-              "active_grid_b_power", [f"{PWS}:10020", f"{PWS}:2101282"]),
-        "c": ("grid_c_voltage", [f"{PWS}:10011", f"{PWS}:11206", f"{PWS}:2101264"],
-              "active_grid_c_current", [f"{PWS}:10013", f"{PWS}:2101270"],
-              "active_grid_c_power", [f"{PWS}:10021", f"{PWS}:2101283"]),
+        "a": ("grid_a_voltage",
+              [f"{PWS}:10002", f"{PWS}:11204", f"{PWS}:2101256", f"{EMMA}:11204"],
+              "active_grid_a_current",
+              [f"{PWS}:10003", f"{PWS}:2101268", f"{EMMA}:10009"],
+              "active_grid_a_power",
+              [f"{PWS}:10019", f"{PWS}:2101281", f"{EMMA}:11209"]),
+        "b": ("grid_b_voltage",
+              [f"{PWS}:10010", f"{PWS}:11205", f"{PWS}:2101257", f"{EMMA}:11205"],
+              "active_grid_b_current",
+              [f"{PWS}:10012", f"{PWS}:2101269", f"{EMMA}:10010"],
+              "active_grid_b_power",
+              [f"{PWS}:10020", f"{PWS}:2101282", f"{EMMA}:11210"]),
+        "c": ("grid_c_voltage",
+              [f"{PWS}:10011", f"{PWS}:11206", f"{PWS}:2101264", f"{EMMA}:11206"],
+              "active_grid_c_current",
+              [f"{PWS}:10013", f"{PWS}:2101270", f"{EMMA}:10011"],
+              "active_grid_c_power",
+              [f"{PWS}:10021", f"{PWS}:2101283", f"{EMMA}:11211"]),
     }.items():
         d(_def(f"meter_phase_{ph}_voltage", f"Phase {ph.upper()} voltage",
                DM, "voltage", hs=hsv, fsp=fspv,
@@ -565,6 +583,44 @@ def _build() -> list[HubSensorDef]:
            fsp=f"{PLT}:flow_load_power", icon="mdi:home-lightning-bolt-outline"))
     d(_def("flow_grid_power", "Flow grid power", DP, "power",
            fsp=f"{PLT}:flow_grid_power", icon="mdi:transmission-tower"))
+
+    # ---------------- EMMA / Smart Assistant ----------------
+    # Configuration parameters from FusionSolarPlus >= 2.3.5
+    # (deviceExt/get-config-signals, refreshed at most every 5 minutes).
+    # FSP-only: huawei_solar exposes the comparable settings as writable
+    # number/select entities, FusionSolar does not expose them at all.
+    # Enumerations are mapped as plain text: the hub does not carry the
+    # source option list, and an ENUM device class without options is invalid.
+    d(_def("emma_peak_power", "Peak power", DE, "power",
+           fsp=f"{EMMA}:230700179", icon="mdi:speedometer"))
+    d(_def("emma_peak_shaving_mode", "Peak shaving mode", DE, "text",
+           fsp=f"{EMMA}:230700177", icon="mdi:chart-sankey", diagnostic=True))
+    d(_def("emma_peak_shaving_backup_soc", "Peak shaving backup SOC", DE,
+           "percent", fsp=f"{EMMA}:230700178", icon="mdi:battery-lock",
+           diagnostic=True))
+    d(_def("emma_working_mode", "Working mode", DE, "text",
+           fsp=f"{EMMA}:21021", icon="mdi:cog-sync", diagnostic=True))
+    d(_def("emma_active_power_control_mode", "Active power control mode", DE,
+           "text", fsp=f"{EMMA}:21115", icon="mdi:car-speed-limiter",
+           diagnostic=True))
+    d(_def("emma_max_grid_feed_in_power", "Maximum grid feed-in power", DE,
+           "power", fsp=f"{EMMA}:21098",
+           icon="mdi:transmission-tower-import", diagnostic=True))
+    d(_def("emma_max_mains_power", "Maximum mains power", DE, "power",
+           fsp=f"{EMMA}:230700200", icon="mdi:transmission-tower-export",
+           diagnostic=True))
+    d(_def("emma_allowed_ac_charge_power", "Allowed AC charge power", DE,
+           "power", fsp=f"{EMMA}:21110", icon="mdi:battery-arrow-up",
+           diagnostic=True))
+    d(_def("emma_charge_from_ac", "Charge from AC", DE, "text",
+           fsp=f"{EMMA}:230700278", icon="mdi:battery-charging-outline",
+           diagnostic=True))
+    d(_def("emma_grid_charge_cutoff_soc", "Grid charge cutoff SOC", DE,
+           "percent", fsp=f"{EMMA}:230700279", icon="mdi:battery-sync",
+           diagnostic=True))
+    d(_def("emma_pv_power_priority", "PV power priority", DE, "text",
+           fsp=f"{EMMA}:230700180",
+           icon="mdi:solar-power-variant-outline", diagnostic=True))
 
     return defs
 

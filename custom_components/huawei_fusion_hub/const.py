@@ -48,6 +48,7 @@ DEVICE_BATTERY_UNIT_1 = "battery_unit_1"
 DEVICE_BATTERY_UNIT_2 = "battery_unit_2"
 DEVICE_METER = "meter"
 DEVICE_PLANT = "plant"
+DEVICE_EMMA = "emma"
 
 DEVICE_NAMES = {
     DEVICE_HUB: "Huawei Fusion Hub",
@@ -57,6 +58,7 @@ DEVICE_NAMES = {
     DEVICE_BATTERY_UNIT_2: "Battery Unit 2 (HF Hub)",
     DEVICE_METER: "Power Meter (HF Hub)",
     DEVICE_PLANT: "Plant (HF Hub)",
+    DEVICE_EMMA: "EMMA (HF Hub)",
 }
 
 # dispatcher signal for runtime-added entities (suffix: entry_id)

@@ -18,6 +18,7 @@ from .const import (
     ALL_SOURCES,
     CONF_AGGREGATE_CONTROLS,
     CONF_NOTIFY_ON_DISCONNECT,
+    CONF_OVERRIDES,
     CONF_PRIORITY,
     CONF_SOURCES,
     DEFAULT_AGGREGATE_CONTROLS,
@@ -246,15 +247,18 @@ class HubOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> Any:
         if user_input is not None:
-            return self.async_create_entry(
-                title="",
-                data={
-                    CONF_SOURCES: self._sources,
-                    CONF_PRIORITY: self._priority,
-                    CONF_NOTIFY_ON_DISCONNECT: self._notify,
-                    CONF_AGGREGATE_CONTROLS: user_input[CONF_AGGREGATE_CONTROLS],
-                },
-            )
+            data = {
+                CONF_SOURCES: self._sources,
+                CONF_PRIORITY: self._priority,
+                CONF_NOTIFY_ON_DISCONNECT: self._notify,
+                CONF_AGGREGATE_CONTROLS: user_input[CONF_AGGREGATE_CONTROLS],
+            }
+            # keys not managed by this flow (e.g. per-entity overrides set
+            # via the registry) must be carried over, not dropped
+            overrides = self._entry.options.get(CONF_OVERRIDES)
+            if overrides:
+                data[CONF_OVERRIDES] = overrides
+            return self.async_create_entry(title="", data=data)
         return self.async_show_form(
             step_id="controls",
             data_schema=vol.Schema(

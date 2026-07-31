@@ -467,6 +467,39 @@
       "flow_grid_power": {
         "name": "Flusso potenza rete"
       },
+      "emma_peak_power": {
+        "name": "Potenza di picco"
+      },
+      "emma_peak_shaving_mode": {
+        "name": "Modalità peak shaving"
+      },
+      "emma_peak_shaving_backup_soc": {
+        "name": "SOC riserva per peak shaving"
+      },
+      "emma_working_mode": {
+        "name": "Modalità di funzionamento"
+      },
+      "emma_active_power_control_mode": {
+        "name": "Modalità controllo potenza attiva"
+      },
+      "emma_max_grid_feed_in_power": {
+        "name": "Potenza massima immessa in rete"
+      },
+      "emma_max_mains_power": {
+        "name": "Potenza massima di rete"
+      },
+      "emma_allowed_ac_charge_power": {
+        "name": "Potenza di carica AC consentita"
+      },
+      "emma_charge_from_ac": {
+        "name": "Carica da AC"
+      },
+      "emma_grid_charge_cutoff_soc": {
+        "name": "SOC limite carica da rete"
+      },
+      "emma_pv_power_priority": {
+        "name": "Priorità potenza fotovoltaica"
+      },
       "battery_unit_1_pack_1_no": {
         "name": "Pacco 1 numero"
       },
