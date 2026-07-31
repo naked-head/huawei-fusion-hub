@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.0] - 2026-07-31
-
 ### Added
 
 - Battery runtime estimates (optional, on by default): `sensor.hf_hub_battery_estimated_time_to_full` and `sensor.hf_hub_battery_estimated_time_to_minimum`, computed from the aggregated battery power, SoC and rated capacity. Published as `duration` sensors in seconds, so the frontend renders them as hours and minutes rather than a raw minute count. No extra polling and no recorder dependency — samples are kept in a rolling in-memory window, so both sensors stay unknown for the first minutes after a restart.
@@ -18,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Two estimation methods, reported per sensor in the `estimation_method` attribute. `energy` (missing energy over current power) is the default; `soc_rate` (missing percentage over the observed SoC slope) takes over above 95% SoC while charging, where cell balancing breaks the assumption that SoC is linear in stored energy. `soc_rate` is used only when the SoC comes from Huawei Solar (Modbus) and the slope is measurable above quantization noise; cloud sources always use `energy` with a wider sample window.
 - `power_variation` and `confidence` attributes on both estimates: the coefficient of variation of the power over the window, and a `high`/`medium`/`low` label derived from it together with how much of the window is filled. The estimate assumes the current rate holds until the target, and these say how well that assumption held.
 - Unit tests for the estimator (`tests/test_derived.py`), wired into the test workflow.
+
+### Changed
+
+- Availability binary sensors renamed from "<source> available" to "<source> connection", so the name agrees with the Connected/Disconnected state the connectivity device class produces. Display name only: unique IDs and entity IDs are unchanged, and no migration is needed.
+
+## [0.7.0] - 2026-07-31
+
+### Added
+
 - Energy Dashboard migration guide ([ENERGY_MIGRATION.md](ENERGY_MIGRATION.md)) with step-by-step instructions for transferring long-term statistics from source integration entities to hub entities
 - README section linking to the migration guide with disclaimer
 - EMMA / Smart Assistant support for FusionSolarPlus 2.3.5 and later: 11 new sensors in a dedicated `EMMA (HF Hub)` device group, covering the capacity control parameters (peak shaving mode, peak power, backup SoC for peak shaving, grid charge cutoff SoC, allowed AC charge power, maximum mains power, maximum grid feed-in power, active power control mode, working mode, charge from AC, PV power priority). The device group is created only when an EMMA is present, so nothing changes on installations without one.
@@ -29,14 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Release workflow now flags pre-release tags (`vX.Y.Z-suffix`) as GitHub pre-releases instead of publishing every tag as a stable release, and falls back to the `[Unreleased]` changelog section when a pre-release tag has no matching version heading yet.
-
-### Fixed
-
-- Options flow no longer drops `overrides` when saving: keys not managed by the flow are carried over instead of being replaced.
-
-### Changed
-
-- Availability binary sensors renamed from "<source> available" to "<source> connection", so the name agrees with the Connected/Disconnected state the connectivity device class produces. Display name only: unique IDs and entity IDs are unchanged, and no migration is needed.
 
 ### Fixed
 
