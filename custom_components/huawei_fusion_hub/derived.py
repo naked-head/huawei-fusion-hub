@@ -9,7 +9,9 @@ Two estimation methods are used:
 
 * ``energy`` — missing energy divided by current power. Reactive to power
   changes, but relies on the rated capacity being correct and on the SoC
-  being linear in stored energy.
+  being linear in stored energy. The power the inverter reports is measured
+  upstream of the DC/DC conversion, so the rated capacity is scaled by a
+  per-direction conversion factor before the division.
 * ``soc_rate`` — missing percentage divided by the observed SoC slope.
   Immune to both assumptions above, but lags behind sudden power changes
   and needs a SoC that moves often enough to measure.
@@ -50,7 +52,7 @@ SAMPLE_INTERVAL = 15.0
 
 # Rolling window length, per SoC source.
 WINDOW_LOCAL = 900.0  # 15 min — Huawei Solar (Modbus)
-WINDOW_CLOUD = 2700.0  # 45 min — FusionSolar / FusionSolarPlus
+WINDOW_CLOUD = 1200.0  # 20 min — FusionSolar / FusionSolarPlus
 
 # Below this power the battery is idle and no estimate is published.
 IDLE_POWER = 100.0
@@ -77,7 +79,7 @@ MIN_SLOPE = 0.005  # %/min
 # the window, relative to its own mean — is measured; where the cuts fall
 # is a judgement call, to be re-tuned against real data.
 MIN_VARIATION_SAMPLES = 3
-CV_HIGH = 0.15
+CV_HIGH = 0.10
 CV_MEDIUM = 0.40
 FILL_HIGH = 0.8
 FILL_MEDIUM = 0.4
@@ -86,6 +88,18 @@ FILL_MEDIUM = 0.4
 # reporting no unit at all falls through unconverted. No residential
 # battery is 200 kWh, so a value above that is Wh.
 CAPACITY_WH_THRESHOLD = 200.0
+
+# The SoC is a property of the pack; the power register is measured upstream
+# of the conversion. Charging therefore costs more energy than the pack
+# gains, and discharging delivers less than the pack loses, so the rated
+# capacity has to be scaled before it is divided by that power. These are
+# conversion factors, not a capacity correction: the pack itself measures
+# 10 kWh per 100% SoC in both directions.
+#
+# Measured over 544 stable 10%-SoC blocks, 30 July - 5 August 2026:
+# 10.36 kWh per 100% SoC charging, 8.97 discharging, round trip 0.866.
+CAPACITY_FACTOR_CHARGE = 1.036
+CAPACITY_FACTOR_DISCHARGE = 0.897
 
 
 @dataclass(frozen=True)
@@ -245,6 +259,8 @@ class BatteryRuntimeEstimator:
             return RuntimeEstimate(**common)
         if capacity > CAPACITY_WH_THRESHOLD:
             capacity = capacity / 1000
+        # published as-is: the attribute reports the rated capacity of the
+        # pack, not the conversion-scaled figure used in the arithmetic
         common["capacity"] = round(capacity, 2)
 
         if power > IDLE_POWER:
@@ -267,7 +283,9 @@ class BatteryRuntimeEstimator:
                 time_to_full=0.0, method=METHOD_ENERGY, **common
             )
 
-        minutes = _energy_minutes(capacity, 100 - soc, power)
+        minutes = _energy_minutes(
+            capacity * CAPACITY_FACTOR_CHARGE, 100 - soc, power
+        )
         method = METHOD_ENERGY
 
         if soc >= SOC_RATE_THRESHOLD and source == SOURCE_HUAWEI_SOLAR:
@@ -290,7 +308,11 @@ class BatteryRuntimeEstimator:
             )
 
         value = _publishable(
-            _energy_minutes(capacity, soc - self.reserve_soc, power)
+            _energy_minutes(
+                capacity * CAPACITY_FACTOR_DISCHARGE,
+                soc - self.reserve_soc,
+                power,
+            )
         )
         if value is None:
             return RuntimeEstimate(**common)
