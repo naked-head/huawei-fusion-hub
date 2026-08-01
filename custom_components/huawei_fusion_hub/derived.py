@@ -77,8 +77,8 @@ MIN_SLOPE = 0.005  # %/min
 # the window, relative to its own mean — is measured; where the cuts fall
 # is a judgement call, to be re-tuned against real data.
 MIN_VARIATION_SAMPLES = 3
-CV_HIGH = 0.15
-CV_MEDIUM = 0.40
+CV_HIGH = 0.20
+CV_MEDIUM = 0.40   # invariato: 0,20-0,40 → 20-27%, sopra 0,40 → 47,6%
 FILL_HIGH = 0.8
 FILL_MEDIUM = 0.4
 
