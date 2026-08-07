@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Two estimation methods, reported per sensor in the `estimation_method` attribute. `energy` (missing energy over current power) is the default; `soc_rate` (missing percentage over the observed SoC slope) takes over above 95% SoC while charging, where cell balancing breaks the assumption that SoC is linear in stored energy. `soc_rate` is used only when the SoC comes from Huawei Solar (Modbus) and the slope is measurable above quantization noise; cloud sources always use `energy` with a wider sample window.
 - `power_variation` and `confidence` attributes on both estimates: the coefficient of variation of the power over the window, and a `high`/`medium`/`low` label derived from it together with how much of the window is filled. The estimate assumes the current rate holds until the target, and these say how well that assumption held.
 - Unit tests for the estimator (`tests/test_derived.py`), wired into the test workflow.
+- Directional capacity factors, calibrated over 544 stable 10%-SoC blocks between 30 July and 5 August 2026: the pack measures 10 kWh per 100% SoC in both directions, but the power register sits upstream of the DC/AC conversion, so charging costs 10.36 kWh per 100% SoC and discharging delivers 8.97 (round trip 0.866). The rated capacity is scaled accordingly before being divided by the current power, which removes the optimistic bias on `time_to_minimum`.
 
 ### Changed
 

@@ -37,19 +37,21 @@ def test_idle_battery_publishes_nothing():
 
 
 def test_charging_energy_method():
-    # 10 kWh, 50% missing = 5 kWh at 2500 W -> 120 minutes
+    # 10 kWh scaled by CAPACITY_FACTOR_CHARGE = 10.36 kWh per 100% SoC;
+    # 50% missing = 5.18 kWh at 2500 W -> 124 minutes
     estimator = BatteryRuntimeEstimator(5.0, None)
     result = _feed(estimator, [(0, 2500, 50), (SAMPLE_INTERVAL, 2500, 50)])
     assert result.method == METHOD_ENERGY
-    assert result.time_to_full == 120
+    assert result.time_to_full == 124
     assert result.time_to_minimum is None
 
 
 def test_discharging_stops_at_reserve():
-    # from 55% down to the 5% reserve = 5 kWh at 1000 W -> 300 minutes
+    # 10 kWh scaled by CAPACITY_FACTOR_DISCHARGE = 8.97 kWh per 100% SoC;
+    # from 55% down to the 5% reserve = 4.485 kWh at 1000 W -> 269 minutes
     estimator = BatteryRuntimeEstimator(5.0, None)
     result = _feed(estimator, [(0, -1000, 55), (SAMPLE_INTERVAL, -1000, 55)])
-    assert result.time_to_minimum == 300
+    assert result.time_to_minimum == 269
     assert result.time_to_full is None
 
 
@@ -171,10 +173,10 @@ def test_window_is_pruned():
 
 def test_capacity_override_wins():
     estimator = BatteryRuntimeEstimator(5.0, 5.0)
-    # 5 kWh instead of 10: half the time
+    # 5 kWh instead of 10: half the time (62 rather than 124)
     result = _feed(estimator, [(0, 2500, 50), (SAMPLE_INTERVAL, 2500, 50)])
     assert result.capacity == 5.0
-    assert result.time_to_full == 60
+    assert result.time_to_full == 62
 
 
 def test_capacity_in_wh_is_normalized():
@@ -183,7 +185,7 @@ def test_capacity_in_wh_is_normalized():
         estimator, [(0, 2500, 50), (SAMPLE_INTERVAL, 2500, 50)], capacity=10000.0
     )
     assert result.capacity == 10.0
-    assert result.time_to_full == 120
+    assert result.time_to_full == 124
 
 
 def test_missing_capacity_publishes_nothing():
