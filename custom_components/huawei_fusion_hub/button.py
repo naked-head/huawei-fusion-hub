@@ -19,8 +19,8 @@ async def async_setup_entry(
 ) -> None:
     coordinator: HubCoordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities(
-        HubButtonProxy(coordinator, CONTROL_DEFS_BY_KEY[key], sources)
-        for key, sources in coordinator.control_candidates.items()
+        HubButtonProxy(coordinator, CONTROL_DEFS_BY_KEY[key])
+        for key in coordinator.control_candidates
         if CONTROL_DEFS_BY_KEY[key].platform == "button"
     )
 

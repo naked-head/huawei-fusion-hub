@@ -19,8 +19,8 @@ async def async_setup_entry(
 ) -> None:
     coordinator: HubCoordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities(
-        HubNumberProxy(coordinator, CONTROL_DEFS_BY_KEY[key], sources)
-        for key, sources in coordinator.control_candidates.items()
+        HubNumberProxy(coordinator, CONTROL_DEFS_BY_KEY[key])
+        for key in coordinator.control_candidates
         if CONTROL_DEFS_BY_KEY[key].platform == "number"
     )
 

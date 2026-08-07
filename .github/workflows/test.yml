@@ -23,3 +23,5 @@ jobs:
         run: pip install homeassistant
       - name: Run normalize tests
         run: python tests/test_normalize.py
+      - name: Run rediscovery tests
+        run: python tests/test_rediscovery.py

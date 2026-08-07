@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-08-07
+
+Home Assistant 2026.8 promoted entity ID renaming to a first-class action in
+the interface, added a user-configurable entity ID format and a **Recreate
+entity IDs** action on the device page. Renaming a source entity was always
+possible, but it is now something users will actually do — and this release
+makes the hub survive it. No configuration change is required.
+
+### Fixed
+
+- Source entities that are renamed are followed correctly again. A rename produces no new and no lost canonical key, and the rediscovery returned early on exactly that shape, before re-arming its state subscriptions. The listener kept tracking the old entity IDs, which never fire again, so the affected hub sensors froze on their last value until the next restart. This was a latent bug independent of 2026.8; renaming simply became a much more likely way to hit it.
+- Renaming a source `switch`, `select`, `number` or `button` entity now triggers a rediscovery as well. The registry listener only accepted the `sensor` domain, so with `aggregate_controls` enabled a renamed control left its proxy pointing at an entity ID that no longer existed, permanently unavailable.
+- Control proxies read their source mapping from the coordinator instead of caching the dictionary handed over when they were created. Every rediscovery rebuilds that mapping from scratch, so the cached copy went stale on the first change. The proxies also re-arm their state subscriptions when the mapping moves, instead of tracking the entity IDs they saw at startup.
+
+### Added
+
+- Rediscovery now reports losses, not just gains. Canonical keys that stopped resolving to any source, and keys that lost one source while keeping another, are logged at `WARNING`. Sources matched through the object ID fallback layer (rather than by unique ID) stop matching when a source entity is renamed, and until now that produced no output at all: the value silently degraded to a lower-priority source, or disappeared. No persistent notification is raised — an offline source is already covered by the availability alerts.
+- A repair issue is raised when an entity created by this integration no longer uses the `hf_hub_*` entity ID it was assigned. Home Assistant preserves a renamed entity ID across restarts, and **Recreate entity IDs** rebuilds it from the area, device and entity names whenever a custom friendly name is set, which drops the `hf_hub_` prefix. Everything downstream — templates, automations, dashboards, long-term statistics, InfluxDB and Grafana queries — addresses the hub by those IDs, so the drift needed to be visible. The repair lists every affected entity with the ID that was expected, and clears itself once the IDs match again.
+- `tests/test_rediscovery.py`, covering the rediscovery diff logic including the rename case above, wired into the test workflow.
+
 ## [0.7.0] - 2026-07-31
 
 ### Added
@@ -120,7 +140,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Options flow to change priority and alert behavior without restart.
 - English and Italian translations.
 
-[Unreleased]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.6.0...v0.6.1

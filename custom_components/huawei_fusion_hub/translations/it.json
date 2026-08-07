@@ -72,6 +72,12 @@
       "duplicate_priority": "Ogni sorgente può comparire una sola volta nella lista delle priorità."
     }
   },
+  "issues": {
+    "entity_id_drift": {
+      "title": "Gli entity ID dell'hub sono stati rinominati",
+      "description": "{count} entity ID creati da Huawei Fusion Hub non seguono più la denominazione `hf_hub_*` assegnata dall'integrazione:\n\n{entities}\n\nLe entità continuano a funzionare, ma tutto ciò che le indirizza con l'ID originale - template, automazioni, dashboard, statistiche a lungo termine, query InfluxDB o Grafana - ora punta a un nome che non esiste.\n\nDi solito succede dopo aver rinominato un entity ID a mano, oppure dopo aver usato **Ricrea gli ID entità** su un dispositivo dell'hub mentre era impostato un nome personalizzato. Per ripristinare un nome, apri le impostazioni dell'entità e reimposta l'entity ID al valore atteso indicato sopra. Il messaggio sparisce al riavvio o al ricaricamento successivo, una volta che tutti gli ID corrispondono di nuovo.\n\nSe i nuovi nomi sono voluti, aggiorna ciò che li referenzia e ignora questo messaggio."
+    }
+  },
   "entity": {
     "sensor": {
       "inverter_rated_power": {
