@@ -26,8 +26,10 @@ from .const import (
     CONF_NOTIFY_ON_DISCONNECT,
     CONF_OVERRIDES,
     CONF_PRIORITY,
+    CONTROL_DOMAINS,
     DEVICE_NAMES,
     DOMAIN,
+    SIGNAL_CONTROLS_CHANGED,
     SIGNAL_NEW_KEYS,
     SOURCE_NAMES,
     SOURCE_OFFLINE_THRESHOLD,
@@ -52,6 +54,48 @@ class ResolvedValue:
     value: Any
     source: str | None
     source_entity: str | None
+
+
+@dataclass
+class CandidateDiff:
+    """What changed between two discovery passes.
+
+    Kept free of Home Assistant objects so the rediscovery logic can be
+    exercised directly in the test suite.
+    """
+
+    new_keys: list[str]
+    gained: list[str]
+    dropped: list[str]
+    lost_sources: dict[str, list[str]]
+    changed: bool
+
+    @property
+    def has_losses(self) -> bool:
+        return bool(self.dropped or self.lost_sources)
+
+
+def diff_candidates(
+    old: dict[str, dict[str, str]],
+    new: dict[str, dict[str, str]],
+) -> CandidateDiff:
+    """Compare two candidate mappings.
+
+    `changed` is true whenever any resolved entity_id moved, including the
+    case where a source entity was merely renamed: that produces no new,
+    gained or dropped key, but it does invalidate the state subscriptions.
+    """
+    return CandidateDiff(
+        new_keys=[k for k in new if k not in old],
+        gained=[k for k in new if k in old and set(new[k]) - set(old[k])],
+        dropped=[k for k in old if k not in new],
+        lost_sources={
+            k: sorted(set(old[k]) - set(new[k]))
+            for k in old
+            if k in new and set(old[k]) - set(new[k])
+        },
+        changed=old != new,
+    )
 
 
 class HubCoordinator(DataUpdateCoordinator[dict[str, ResolvedValue]]):
@@ -144,7 +188,7 @@ class HubCoordinator(DataUpdateCoordinator[dict[str, ResolvedValue]]):
             for entity in registry.entities.values():
                 if (
                     entity.platform in by_source_ctl
-                    and entity.domain in ("switch", "select", "number", "button")
+                    and entity.domain in CONTROL_DOMAINS
                 ):
                     model = ""
                     if entity.device_id:
@@ -311,8 +355,14 @@ class HubCoordinator(DataUpdateCoordinator[dict[str, ResolvedValue]]):
     def _handle_registry_event(self, event: Event) -> None:
         if event.data.get("action") not in ("create", "update"):
             return
+        # On a rename the event carries the *new* entity_id, which is what
+        # the registry lookup below needs; "update" also covers a source
+        # entity being enabled, disabled or moved to another device.
         entity_id = event.data.get("entity_id", "")
-        if not entity_id.startswith("sensor."):
+        domain = entity_id.split(".", 1)[0]
+        if domain != "sensor" and not (
+            self.aggregate_controls and domain in CONTROL_DOMAINS
+        ):
             return
         entry = er.async_get(self.hass).async_get(entity_id)
         if not entry or entry.platform not in self.priority:
@@ -327,20 +377,53 @@ class HubCoordinator(DataUpdateCoordinator[dict[str, ResolvedValue]]):
     async def _async_rediscover(self, _now=None) -> None:
         self._rediscover_cancel = None
         old_candidates = {k: dict(v) for k, v in self.candidates.items()}
+        old_controls = {k: dict(v) for k, v in self.control_candidates.items()}
         self.discover()
 
-        new_keys = [k for k in self.candidates if k not in old_candidates]
-        gained = [
-            k
-            for k in self.candidates
-            if k in old_candidates
-            and set(self.candidates[k]) - set(old_candidates[k])
-        ]
+        diff = diff_candidates(old_candidates, self.candidates)
+        new_keys = diff.new_keys
+        gained = diff.gained
+
+        # A plain entity_id rename yields no new, gained or dropped key, yet
+        # it silently breaks the state listener: that listener is still
+        # tracking the old ids, which will never fire again, so the hub
+        # sensors freeze on their last value until the next restart.
+        # Re-subscribe whenever the resolved ids changed at all, and do it
+        # before any early return below.
+        if diff.changed:
+            self._subscribe_states()
+            self._refresh_data()
+
+        # Control proxies keep their own state subscriptions; tell them to
+        # re-arm when their mapping moved.
+        if self.control_candidates != old_controls:
+            async_dispatcher_send(
+                self.hass,
+                f"{SIGNAL_CONTROLS_CHANGED}_{self.entry.entry_id}",
+            )
+
+        # Losses get no persistent notification (a source that went offline
+        # is already covered by the availability alerts), but they must be
+        # visible somewhere: a renamed source entity that the object_id
+        # fallback layer can no longer match shows up here and nowhere else.
+        if diff.dropped:
+            _LOGGER.warning(
+                "Rediscovery: %d key(s) no longer resolve to any source: %s",
+                len(diff.dropped),
+                ", ".join(sorted(diff.dropped)),
+            )
+        if diff.lost_sources:
+            _LOGGER.warning(
+                "Rediscovery: %d key(s) lost a source: %s",
+                len(diff.lost_sources),
+                "; ".join(
+                    f"{k} ({', '.join(v)})"
+                    for k, v in sorted(diff.lost_sources.items())
+                ),
+            )
+
         if not new_keys and not gained:
             return
-
-        self._subscribe_states()
-        self._refresh_data()
 
         if new_keys:
             async_dispatcher_send(

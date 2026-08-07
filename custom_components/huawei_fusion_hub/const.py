@@ -36,6 +36,11 @@ DEFAULT_STALE_TIMEOUT = 0  # 0 = disabled
 # entities in unavailable/unknown exceeds this threshold.
 SOURCE_OFFLINE_THRESHOLD = 0.8
 
+# Entity domains a control proxy can mirror. Used both when indexing the
+# registry during discovery and when deciding whether a registry event is
+# worth a rediscovery.
+CONTROL_DOMAINS = ("switch", "select", "number", "button")
+
 ATTR_SOURCE = "source"
 ATTR_SOURCE_ENTITY = "source_entity"
 ATTR_CANDIDATES = "candidates"
@@ -63,6 +68,14 @@ DEVICE_NAMES = {
 
 # dispatcher signal for runtime-added entities (suffix: entry_id)
 SIGNAL_NEW_KEYS = f"{DOMAIN}_new_keys"
+
+# dispatcher signal fired when the control mapping changed, so the
+# already-created control proxies re-arm their state subscriptions
+# (suffix: entry_id)
+SIGNAL_CONTROLS_CHANGED = f"{DOMAIN}_controls_changed"
+
+# repair issue raised when a hub entity_id no longer matches its unique_id
+ISSUE_ENTITY_ID_DRIFT = "entity_id_drift"
 
 # storage for one-time flags (suffix: entry_id)
 STORAGE_VERSION = 1
