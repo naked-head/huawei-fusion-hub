@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-<<<<<<< HEAD
+### Added
+
+- Battery runtime estimates (optional, on by default): `sensor.hf_hub_battery_estimated_time_to_full` and `sensor.hf_hub_battery_estimated_time_to_minimum`, computed from the aggregated battery power, SoC and rated capacity. Published as `duration` sensors in seconds, so the frontend renders them as hours and minutes rather than a raw minute count. No extra polling and no recorder dependency — samples are kept in a rolling in-memory window, so both sensors stay unknown for the first minutes after a restart.
+- Estimates are not published below 100 W of battery power, nor when the arithmetic exceeds 24 hours: near the idle threshold a linear estimate reaches tens of hours, and a value clamped to a ceiling would be presented as a real reading.
+- One-off persistent notification on the upgrade that adds the estimates, explaining what they are and where to turn them off. Not shown on fresh installations, where the config flow already covers it.
+- Config flow step for the estimates: enable/disable, minimum charge level for the discharge target (default 5%), and a capacity override for sources that do not publish the rated capacity or for batteries whose real capacity has dropped with age.
+- Two estimation methods, reported per sensor in the `estimation_method` attribute. `energy` (missing energy over current power) is the default; `soc_rate` (missing percentage over the observed SoC slope) takes over above 95% SoC while charging, where cell balancing breaks the assumption that SoC is linear in stored energy. `soc_rate` is used only when the SoC comes from Huawei Solar (Modbus) and the slope is measurable above quantization noise; cloud sources always use `energy` with a wider sample window.
+- `power_variation` and `confidence` attributes on both estimates: the coefficient of variation of the power over the window, and a `high`/`medium`/`low` label derived from it together with how much of the window is filled. The estimate assumes the current rate holds until the target, and these say how well that assumption held.
+- Unit tests for the estimator (`tests/test_derived.py`), wired into the test workflow.
+
+### Changed
+
+- Availability binary sensors renamed from "<source> available" to "<source> connection", so the name agrees with the Connected/Disconnected state the connectivity device class produces. Display name only: unique IDs and entity IDs are unchanged, and no migration is needed.
+
 ## [0.8.0] - 2026-08-07
 
 Home Assistant 2026.8 promoted entity ID renaming to a first-class action in
@@ -27,24 +40,6 @@ makes the hub survive it. No configuration change is required.
 - Rediscovery now reports losses, not just gains. Canonical keys that stopped resolving to any source, and keys that lost one source while keeping another, are logged at `WARNING`. Sources matched through the object ID fallback layer (rather than by unique ID) stop matching when a source entity is renamed, and until now that produced no output at all: the value silently degraded to a lower-priority source, or disappeared. No persistent notification is raised — an offline source is already covered by the availability alerts.
 - A repair issue is raised when an entity created by this integration no longer uses the `hf_hub_*` entity ID it was assigned. Home Assistant preserves a renamed entity ID across restarts, and **Recreate entity IDs** rebuilds it from the area, device and entity names whenever a custom friendly name is set, which drops the `hf_hub_` prefix. Everything downstream — templates, automations, dashboards, long-term statistics, InfluxDB and Grafana queries — addresses the hub by those IDs, so the drift needed to be visible. The repair lists every affected entity with the ID that was expected, and clears itself once the IDs match again.
 - `tests/test_rediscovery.py`, covering the rediscovery diff logic including the rename case above, wired into the test workflow.
-
-## [0.7.0] - 2026-07-31
-
-=======
->>>>>>> 6a48e4c (chore: drop changelog entries already released in v0.7.0 (main))
-### Added
-
-- Battery runtime estimates (optional, on by default): `sensor.hf_hub_battery_estimated_time_to_full` and `sensor.hf_hub_battery_estimated_time_to_minimum`, computed from the aggregated battery power, SoC and rated capacity. Published as `duration` sensors in seconds, so the frontend renders them as hours and minutes rather than a raw minute count. No extra polling and no recorder dependency — samples are kept in a rolling in-memory window, so both sensors stay unknown for the first minutes after a restart.
-- Estimates are not published below 100 W of battery power, nor when the arithmetic exceeds 24 hours: near the idle threshold a linear estimate reaches tens of hours, and a value clamped to a ceiling would be presented as a real reading.
-- One-off persistent notification on the upgrade that adds the estimates, explaining what they are and where to turn them off. Not shown on fresh installations, where the config flow already covers it.
-- Config flow step for the estimates: enable/disable, minimum charge level for the discharge target (default 5%), and a capacity override for sources that do not publish the rated capacity or for batteries whose real capacity has dropped with age.
-- Two estimation methods, reported per sensor in the `estimation_method` attribute. `energy` (missing energy over current power) is the default; `soc_rate` (missing percentage over the observed SoC slope) takes over above 95% SoC while charging, where cell balancing breaks the assumption that SoC is linear in stored energy. `soc_rate` is used only when the SoC comes from Huawei Solar (Modbus) and the slope is measurable above quantization noise; cloud sources always use `energy` with a wider sample window.
-- `power_variation` and `confidence` attributes on both estimates: the coefficient of variation of the power over the window, and a `high`/`medium`/`low` label derived from it together with how much of the window is filled. The estimate assumes the current rate holds until the target, and these say how well that assumption held.
-- Unit tests for the estimator (`tests/test_derived.py`), wired into the test workflow.
-
-### Changed
-
-- Availability binary sensors renamed from "<source> available" to "<source> connection", so the name agrees with the Connected/Disconnected state the connectivity device class produces. Display name only: unique IDs and entity IDs are unchanged, and no migration is needed.
 
 ## [0.7.0] - 2026-07-31
 
