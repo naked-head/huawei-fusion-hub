@@ -8,12 +8,15 @@ sys.path.insert(
 
 from huawei_fusion_hub.const import SOURCE_FUSION_SOLAR_PLUS, SOURCE_HUAWEI_SOLAR
 from huawei_fusion_hub.derived import (
+    CAPACITY_FACTOR_CHARGE,
+    CAPACITY_FACTOR_DISCHARGE,
     CONFIDENCE_HIGH,
     CONFIDENCE_LOW,
     CONFIDENCE_MEDIUM,
     METHOD_ENERGY,
     METHOD_SOC_RATE,
     SAMPLE_INTERVAL,
+    SOC_RATE_THRESHOLD,
     WINDOW_CLOUD,
     WINDOW_LOCAL,
     BatteryRuntimeEstimator,
@@ -37,22 +40,25 @@ def test_idle_battery_publishes_nothing():
 
 
 def test_charging_energy_method():
-    # 10 kWh scaled by CAPACITY_FACTOR_CHARGE = 10.36 kWh per 100% SoC;
-    # 50% missing = 5.18 kWh at 2500 W -> 124 minutes
+    # 50% missing of 10 kWh scaled by CAPACITY_FACTOR_CHARGE, at 2500 W
     estimator = BatteryRuntimeEstimator(5.0, None)
     result = _feed(estimator, [(0, 2500, 50), (SAMPLE_INTERVAL, 2500, 50)])
+    expected = round(CAPACITY * CAPACITY_FACTOR_CHARGE * 0.50 / 2.5 * 60)
     assert result.method == METHOD_ENERGY
-    assert result.time_to_full == 124
+    assert result.time_to_full == expected
     assert result.time_to_minimum is None
+    assert result.capacity_factor == CAPACITY_FACTOR_CHARGE
 
 
 def test_discharging_stops_at_reserve():
-    # 10 kWh scaled by CAPACITY_FACTOR_DISCHARGE = 8.97 kWh per 100% SoC;
-    # from 55% down to the 5% reserve = 4.485 kWh at 1000 W -> 269 minutes
+    # from 55% down to the 5% reserve, on 10 kWh scaled by
+    # CAPACITY_FACTOR_DISCHARGE, at 1000 W
     estimator = BatteryRuntimeEstimator(5.0, None)
     result = _feed(estimator, [(0, -1000, 55), (SAMPLE_INTERVAL, -1000, 55)])
-    assert result.time_to_minimum == 269
+    expected = round(CAPACITY * CAPACITY_FACTOR_DISCHARGE * 0.50 / 1.0 * 60)
+    assert result.time_to_minimum == expected
     assert result.time_to_full is None
+    assert result.capacity_factor == CAPACITY_FACTOR_DISCHARGE
 
 
 def test_discharge_below_reserve_is_zero():
@@ -122,9 +128,21 @@ def test_variation_needs_three_samples():
     assert result.confidence == CONFIDENCE_LOW
 
 
-def test_soc_rate_takes_over_in_final_stretch():
-    # SoC crawling 0.1 %/min above 95%: soc_rate must win over energy,
-    # which would still trust the nominal capacity
+def test_soc_rate_is_disabled():
+    # SOC_RATE_THRESHOLD is above 100 by design: measurement showed the branch
+    # does worse than energy in every SoC band. This test guards the switch,
+    # not the branch — see the comment on the constant.
+    assert SOC_RATE_THRESHOLD > 100
+    estimator = BatteryRuntimeEstimator(5.0, None)
+    series = [(i * 60.0, 400, 96.0 + i * 0.1) for i in range(11)]
+    result = _feed(estimator, series)
+    assert result.method == METHOD_ENERGY
+
+
+def test_soc_rate_takes_over_when_enabled(monkeypatch):
+    # the branch itself still works: lower the threshold and it wins over
+    # energy, which would still trust the nominal capacity
+    monkeypatch.setattr("huawei_fusion_hub.derived.SOC_RATE_THRESHOLD", 95.0)
     estimator = BatteryRuntimeEstimator(5.0, None)
     series = [(i * 60.0, 400, 96.0 + i * 0.1) for i in range(11)]
     result = _feed(estimator, series)
@@ -140,7 +158,8 @@ def test_soc_rate_not_used_below_threshold():
     assert result.method == METHOD_ENERGY
 
 
-def test_soc_rate_ignored_on_cloud_source():
+def test_soc_rate_ignored_on_cloud_source(monkeypatch):
+    monkeypatch.setattr("huawei_fusion_hub.derived.SOC_RATE_THRESHOLD", 95.0)
     estimator = BatteryRuntimeEstimator(5.0, None)
     series = [(i * 60.0, 400, 96.0 + i * 0.1) for i in range(11)]
     result = _feed(estimator, series, source=SOURCE_FUSION_SOLAR_PLUS)
@@ -148,8 +167,9 @@ def test_soc_rate_ignored_on_cloud_source():
     assert result.window_seconds == WINDOW_CLOUD
 
 
-def test_soc_rate_ignored_when_soc_is_flat():
+def test_soc_rate_ignored_when_soc_is_flat(monkeypatch):
     # quantized SoC that never moves: no measurable slope, stay on energy
+    monkeypatch.setattr("huawei_fusion_hub.derived.SOC_RATE_THRESHOLD", 95.0)
     estimator = BatteryRuntimeEstimator(5.0, None)
     series = [(i * 60.0, 400, 97.0) for i in range(11)]
     result = _feed(estimator, series)
@@ -173,10 +193,12 @@ def test_window_is_pruned():
 
 def test_capacity_override_wins():
     estimator = BatteryRuntimeEstimator(5.0, 5.0)
-    # 5 kWh instead of 10: half the time (62 rather than 124)
+    # 5 kWh instead of 10: half the time. The override fills the same slot as
+    # the inverter reading, so the conversion factor still applies on top.
     result = _feed(estimator, [(0, 2500, 50), (SAMPLE_INTERVAL, 2500, 50)])
+    expected = round(5.0 * CAPACITY_FACTOR_CHARGE * 0.50 / 2.5 * 60)
     assert result.capacity == 5.0
-    assert result.time_to_full == 62
+    assert result.time_to_full == expected
 
 
 def test_capacity_in_wh_is_normalized():
@@ -184,8 +206,9 @@ def test_capacity_in_wh_is_normalized():
     result = _feed(
         estimator, [(0, 2500, 50), (SAMPLE_INTERVAL, 2500, 50)], capacity=10000.0
     )
+    expected = round(CAPACITY * CAPACITY_FACTOR_CHARGE * 0.50 / 2.5 * 60)
     assert result.capacity == 10.0
-    assert result.time_to_full == 124
+    assert result.time_to_full == expected
 
 
 def test_missing_capacity_publishes_nothing():

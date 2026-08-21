@@ -7,20 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-21
+
+The hub gains its first derived sensors: how long until the battery is full,
+and how long until it reaches the reserve. Everything else in this release
+exists to make those two numbers trustworthy — the assumption behind each
+estimate is measured and published alongside it, and the estimator was
+calibrated against three weeks of its own output rather than against the
+datasheet. No configuration change is required; the estimates are on by
+default and can be turned off in the options.
+
 ### Added
 
 - Battery runtime estimates (optional, on by default): `sensor.hf_hub_battery_estimated_time_to_full` and `sensor.hf_hub_battery_estimated_time_to_minimum`, computed from the aggregated battery power, SoC and rated capacity. Published as `duration` sensors in seconds, so the frontend renders them as hours and minutes rather than a raw minute count. No extra polling and no recorder dependency — samples are kept in a rolling in-memory window, so both sensors stay unknown for the first minutes after a restart.
 - Estimates are not published below 100 W of battery power, nor when the arithmetic exceeds 24 hours: near the idle threshold a linear estimate reaches tens of hours, and a value clamped to a ceiling would be presented as a real reading.
 - One-off persistent notification on the upgrade that adds the estimates, explaining what they are and where to turn them off. Not shown on fresh installations, where the config flow already covers it.
-- Config flow step for the estimates: enable/disable, minimum charge level for the discharge target (default 5%), and a capacity override for sources that do not publish the rated capacity or for batteries whose real capacity has dropped with age.
-- Two estimation methods, reported per sensor in the `estimation_method` attribute. `energy` (missing energy over current power) is the default; `soc_rate` (missing percentage over the observed SoC slope) takes over above 95% SoC while charging, where cell balancing breaks the assumption that SoC is linear in stored energy. `soc_rate` is used only when the SoC comes from Huawei Solar (Modbus) and the slope is measurable above quantization noise; cloud sources always use `energy` with a wider sample window.
+- Config flow step for the estimates: enable/disable, minimum charge level for the discharge target (default 5%), and a capacity override for sources that do not publish the rated capacity or for batteries whose real capacity has dropped with age. The override is the **rated** capacity of the pack: it fills the same slot as the inverter's own reading, and the conversion factor below is applied on top of it.
+- Two estimation methods, reported per sensor in the `estimation_method` attribute. `energy` (missing energy over current power) is the one in use. `soc_rate` (missing percentage over the observed SoC slope) was written to take over in the final stretch of a charge, where cell balancing breaks the assumption that SoC is linear in stored energy, but measurement found it worse than `energy` in every SoC band it covered, because the slope measured over the window is still the one from normal charging while the battery enters absorption immediately afterwards. It ships disabled, with the code and its unit tests kept, so a better trigger can be tried without rewriting it.
 - `power_variation` and `confidence` attributes on both estimates: the coefficient of variation of the power over the window, and a `high`/`medium`/`low` label derived from it together with how much of the window is filled. The estimate assumes the current rate holds until the target, and these say how well that assumption held.
+- `capacity_factor` attribute on both estimates, reporting which conversion factor was applied to that reading. It makes a history export self-documenting across an upgrade, instead of having to be reverse-engineered from the numbers afterwards.
+- Conversion factor on the discharge estimate. The SoC is a property of the battery pack, but `battery_power` is measured upstream of the conversion, so the two are not the same energy: over 30 monotonic SoC runs the pack's own daily counters read 9.62 kWh per 100% SoC charging and 9.47 discharging — the same within 1.6%, so the rated capacity is right — while the same runs measured at the power register read 10.35 and 8.17. The rated capacity is scaled by 0.897 before being divided by the current power, which removes the optimistic bias on `time_to_minimum`. The charge side is left unscaled: the physics points at 1.036, but charging power is almost always PV on a ramp, where the error from extrapolating a rising power is larger than the conversion loss and has the opposite sign, so correcting only one of the two made the total worse in measurement.
 - Unit tests for the estimator (`tests/test_derived.py`), wired into the test workflow.
-- Directional capacity factors, calibrated over 544 stable 10%-SoC blocks between 30 July and 5 August 2026: the pack measures 10 kWh per 100% SoC in both directions, but the power register sits upstream of the DC/AC conversion, so charging costs 10.36 kWh per 100% SoC and discharging delivers 8.97 (round trip 0.866). The rated capacity is scaled accordingly before being divided by the current power, which removes the optimistic bias on `time_to_minimum`.
 
 ### Changed
 
+- Sample window for cloud sources reduced from 45 to 20 minutes. FusionSolarPlus publishes about every 135 seconds, so 20 minutes still holds around 9 samples, comfortably above the minimum the estimator needs. The longer window cost nothing while the power was steady and a great deal right after it changed, which is when the estimate matters.
+- Confidence cuts re-tuned. The error turns out not to be monotonic in the power variation — the 0.10–0.15 band does better than 0.05–0.10 — so cutting finer buys nothing. `high` now covers roughly four estimates in five, and the separation between the three classes is wider than with any tighter cut.
 - Availability binary sensors renamed from "<source> available" to "<source> connection", so the name agrees with the Connected/Disconnected state the connectivity device class produces. Display name only: unique IDs and entity IDs are unchanged, and no migration is needed.
+
+### Calibration and its limits
+
+> **The numbers below were measured on a single installation** — a dual-PV
+> plant (Fronius 2.7 kWp and Huawei 3.2 kWp) with one SUN2000 inverter and a
+> LUNA2000 10 kWh battery, over 20 days in August 2026 and roughly 15000
+> published estimates, against both a local Modbus source and a FusionSolarPlus
+> cloud source running in parallel.
+>
+> **They are not a promise about your plant.** The conversion factor is a
+> property of a particular inverter and battery pair; the accuracy figures also
+> depend on load pattern, weather and how steady your consumption is. Treat
+> them as the reason the defaults are what they are, not as a specification.
+>
+> If your own measurements disagree, that is useful information and worth
+> opening an issue about. Deriving the factor per installation, from the
+> battery's own daily counters, instead of shipping a constant is tracked in
+> [#7](https://github.com/naked-head/huawei-fusion-hub/issues/7).
+
+For reference, on that plant:
+
+| | median absolute error | bias |
+|---|---|---|
+| discharge, steady power | 11.4% | −1.8% |
+| charge, steady power | 4.0% | −1.0% |
+| discharge, all estimates | 13.3% | +3.8% |
+| charge, all estimates | 17.0% | +6.7% |
+
+Measured against the SoC rate actually observed over the 30 minutes following
+each estimate. "Steady power" means the power varied by less than 10% over the
+sample window and did not trend by more than 200 W over the following half
+hour; that is the regime the `high` confidence label is meant to identify.
 
 ## [0.8.0] - 2026-08-07
 
@@ -155,7 +200,8 @@ makes the hub survive it. No configuration change is required.
 - Options flow to change priority and alert behavior without restart.
 - English and Italian translations.
 
-[Unreleased]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.6.1...v0.6.2

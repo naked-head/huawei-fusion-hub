@@ -14,14 +14,16 @@ Two estimation methods are used:
   per-direction conversion factor before the division.
 * ``soc_rate`` — missing percentage divided by the observed SoC slope.
   Immune to both assumptions above, but lags behind sudden power changes
-  and needs a SoC that moves often enough to measure.
+  and needs a SoC that moves often enough to measure. Currently disabled;
+  see SOC_RATE_THRESHOLD.
 
 The two are algebraically equivalent whenever the capacity is right and
 the SoC is linear in energy, so ``energy`` is the default. ``soc_rate``
-takes over only in the final stretch of a charge, where cell balancing
-breaks the linearity assumption, and only when the SoC comes from the
-local Modbus source (cloud sources are too slow and too coarse to
-differentiate).
+was meant to take over in the final stretch of a charge, where cell
+balancing breaks the linearity assumption, but measurement showed it does
+worse than ``energy`` there, so it is currently switched off. The code is
+kept because the reasoning behind it still holds and a better trigger may
+yet be found.
 
 Every estimate rests on one assumption: that the current charge or
 discharge rate holds until the target. How well that assumption held over
@@ -63,9 +65,22 @@ IDLE_POWER = 100.0
 # "unknown" is the only true statement available there.
 MAX_MINUTES = 1440.0
 
-# soc_rate takes over above this SoC, where cell balancing makes the
-# energy model structurally wrong.
-SOC_RATE_THRESHOLD = 95.0
+# soc_rate takes over above this SoC. Set above 100 to disable it.
+#
+# Disabled after measurement. Over 13 days (141 evaluable estimates) it was
+# worse than the energy method in every SoC band it covered:
+#
+#     SoC 95-97   soc_rate 70.0%   energy 34.6%   (median |relative error|)
+#     SoC 97-99   soc_rate 81.1%   energy 53.3%
+#     SoC 99-100  soc_rate 93.3%   energy 66.7%
+#
+# and it underestimated by 80% on average. The cause is that the SoC slope
+# measured over the window is still the one from normal charging, while the
+# battery enters absorption immediately afterwards: the past slope does not
+# predict the future one precisely where the regime changes, which is the
+# only place this branch is used. A slope measured over a longer window, or
+# a floor on the last percent, would need validating before re-enabling.
+SOC_RATE_THRESHOLD = 101.0
 
 # Guards against reading a slope out of quantization noise: a source that
 # publishes an integer SoC moves in steps, and two steps in a window are
@@ -77,9 +92,23 @@ MIN_SLOPE = 0.005  # %/min
 
 # Confidence cuts. The underlying measure — how much the power varied over
 # the window, relative to its own mean — is measured; where the cuts fall
-# is a judgement call, to be re-tuned against real data.
+# was a judgement call, now tuned against 20 days of data.
+#
+# The error is not monotonic in the variation: the 0.10-0.15 band actually
+# does better than 0.05-0.10, so cutting finer buys nothing. Over 13 days
+# (10071 estimates), median |relative error| and the ratio between adjacent
+# classes:
+#
+#     CV_HIGH   share high   error high   high/medium separation
+#     0.05         42.9%        11.1%              1.43x
+#     0.10         60.6%        11.9%              1.36x
+#     0.20         82.9%        12.5%              2.59x
+#
+# 0.20 keeps 83% of estimates in `high` at 12.5% error while separating the
+# classes best; tightening to 0.05 costs 40% of the coverage to gain 1.4
+# points and makes the classes overlap more.
 MIN_VARIATION_SAMPLES = 3
-CV_HIGH = 0.10
+CV_HIGH = 0.20
 CV_MEDIUM = 0.40
 FILL_HIGH = 0.8
 FILL_MEDIUM = 0.4
@@ -90,15 +119,27 @@ FILL_MEDIUM = 0.4
 CAPACITY_WH_THRESHOLD = 200.0
 
 # The SoC is a property of the pack; the power register is measured upstream
-# of the conversion. Charging therefore costs more energy than the pack
-# gains, and discharging delivers less than the pack loses, so the rated
-# capacity has to be scaled before it is divided by that power. These are
-# conversion factors, not a capacity correction: the pack itself measures
-# 10 kWh per 100% SoC in both directions.
+# of the conversion. Discharging therefore delivers less energy than the
+# pack loses, so the rated capacity is scaled before it is divided by that
+# power. This is a conversion factor, not a capacity correction: the pack's
+# own daily counters read 9.62 kWh per 100% SoC charging and 9.47
+# discharging — the same within 1.6% — while the same runs measured at the
+# power register read 10.35 and 8.17.
 #
-# Measured over 544 stable 10%-SoC blocks, 30 July - 5 August 2026:
-# 10.36 kWh per 100% SoC charging, 8.97 discharging, round trip 0.866.
-CAPACITY_FACTOR_CHARGE = 1.036
+# Discharge: 0.897 minimises both bias and error over 13 days of published
+# estimates (6961 samples). Reconstructing what the same estimates would
+# have said without it gives +9.5% bias and 12.6% median error, against
+# -1.8% and 11.4% with it.
+#
+# Charge: left at 1.0 despite the physics pointing at 1.036. On 517 clean
+# windows the measured factor gives +2.6% bias where 1.0 gives -1.0%, at
+# identical median error. Charging power is almost always PV on a ramp, and
+# the window error there is larger than the conversion loss and has the
+# opposite sign; correcting only one of the two makes the total worse.
+#
+# Both are properties of this inverter, not of the integration. See the
+# open issue on deriving them at runtime from the battery's own counters.
+CAPACITY_FACTOR_CHARGE = 1.0
 CAPACITY_FACTOR_DISCHARGE = 0.897
 
 
@@ -113,6 +154,7 @@ class RuntimeEstimate:
     window_seconds: int = 0
     source: str | None = None
     capacity: float | None = None
+    capacity_factor: float | None = None
     power_variation: float | None = None
     confidence: str | None = None
 
@@ -254,6 +296,10 @@ class BatteryRuntimeEstimator:
             "confidence": _confidence(variation, _fill(samples, window)),
         }
 
+        # The override fills the same slot as the inverter's own reading: it
+        # is the *rated* capacity of the pack, and the conversion factors are
+        # applied on top of it. Filling it with a figure observed at the power
+        # register would apply the correction twice.
         capacity = self.capacity_override or capacity
         if not capacity or capacity <= 0:
             return RuntimeEstimate(**common)
@@ -264,8 +310,10 @@ class BatteryRuntimeEstimator:
         common["capacity"] = round(capacity, 2)
 
         if power > IDLE_POWER:
+            common["capacity_factor"] = CAPACITY_FACTOR_CHARGE
             return self._charging(common, samples, soc, power, capacity, source)
         if power < -IDLE_POWER:
+            common["capacity_factor"] = CAPACITY_FACTOR_DISCHARGE
             return self._discharging(common, soc, abs(power), capacity)
         return RuntimeEstimate(**common)
 

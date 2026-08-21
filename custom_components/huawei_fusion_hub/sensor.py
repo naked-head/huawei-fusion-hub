@@ -17,6 +17,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import (
     ATTR_CANDIDATES,
     ATTR_CAPACITY,
+    ATTR_CAPACITY_FACTOR,
     ATTR_CONFIDENCE,
     ATTR_ESTIMATION_METHOD,
     ATTR_POWER_VARIATION,
@@ -183,6 +184,7 @@ class HubDerivedSensor(CoordinatorEntity[HubCoordinator], SensorEntity):
             ATTR_SAMPLES: estimate.samples,
             ATTR_WINDOW_SECONDS: estimate.window_seconds,
             ATTR_CAPACITY: estimate.capacity,
+            ATTR_CAPACITY_FACTOR: estimate.capacity_factor,
             ATTR_SOURCE: estimate.source,
         }
         if self._key == KEY_TIME_TO_MINIMUM:
