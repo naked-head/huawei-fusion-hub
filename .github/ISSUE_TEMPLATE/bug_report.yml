@@ -7,10 +7,9 @@ body:
         ## Before you continue
 
         This integration **does not talk to your inverter or to any Huawei cloud service**. It only reads entity states that the source integrations ([Huawei Solar](https://github.com/wlcrs/huawei_solar), [FusionSolar](https://github.com/tijsverkoyen/HomeAssistant-FusionSolar), [FusionSolarPlus](https://github.com/JortvanSchijndel/FusionSolarPlus)) have already published in Home Assistant.
-
         So if a value is wrong, the first question is always: **is it wrong here, or was it already wrong at the source?** Every hub sensor exposes `source` and `source_entity` attributes — open the entity, look at those two, then compare the hub value with the source entity's own value. If they match the problem is upstream and needs to be reported there, where the maintainer can actually act on it.
-
-        Please paste logs and configuration **here as text**, not as email attachments or external links.
+        The quickest way to answer most of the questions below at once is the diagnostics download: **Settings → Devices & Services → Huawei Fusion Hub → three-dot menu → Download diagnostics**. It contains the version, the configured sources, which source won for every canonical key, and — if the battery runtime estimates are on — what the estimator last saw. Credentials and plant identifiers are redacted automatically; entity IDs are not, so give the file a glance before posting.
+        Please paste logs and configuration **here as text**, not as email attachments or external links. The diagnostics JSON can be attached as a file.
 
   - type: checkboxes
     id: confirm-scope
@@ -47,6 +46,10 @@ body:
         - label: I have prepared DEBUG log output for this report.
           required: true
         - label: >-
+            I have downloaded the diagnostics file, checked it for anything I would
+            rather not publish, and attached it below.
+          required: true
+        - label: >-
             I confirm this is really an issue with the integration, and not a
             question or a request for general Home Assistant support.
           required: true
@@ -62,7 +65,7 @@ body:
     attributes:
       label: Integration version
       description: Found in Settings → Devices & Services → Huawei Fusion Hub → three-dot menu → Integration information, or in CHANGELOG.md.
-      placeholder: "e.g. 0.6.2"
+      placeholder: "e.g. 0.9.0"
     validations:
       required: true
 
@@ -121,6 +124,23 @@ body:
       required: false
 
   - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: |
+        Settings → Devices & Services → Huawei Fusion Hub → three-dot menu →
+        **Download diagnostics**. Attach the JSON file by dragging it into this
+        box, or paste its contents.
+
+        If the report is about the battery runtime estimates, this file carries
+        the whole picture: the conversion factor in use, the estimate's own
+        confidence, and the SoC and power the estimator was reading. Without it
+        those have to be asked for one at a time.
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
     id: logs
     attributes:
       label: Relevant log output
@@ -154,7 +174,9 @@ body:
     id: priority_order
     attributes:
       label: Priority order
-      description: The order in which sources are prioritized, highest first.
+      description: >-
+        The order in which sources are prioritized, highest first. Skip this if
+        you attached the diagnostics file — it is in there.
       placeholder: "e.g. Huawei Solar → FusionSolar → FusionSolarPlus"
     validations:
       required: false
