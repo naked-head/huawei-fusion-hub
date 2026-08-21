@@ -7,15 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-08-21
+
+### Added
+
+- Diagnostics download (Settings → Devices & Services → Huawei Fusion Hub → Download diagnostics). Reports which source won each canonical key and which
+  sources were in the running, the configured priority and per-source entity counts, and — when the battery runtime estimates are enabled — the values the estimator is reading together with its last result, conversion factor included. Credentials and plant identifiers are redacted; entity IDs are kept, since they are the point of the report.
+
 ## [0.9.0] - 2026-08-21
 
-The hub gains its first derived sensors: how long until the battery is full,
-and how long until it reaches the reserve. Everything else in this release
-exists to make those two numbers trustworthy — the assumption behind each
-estimate is measured and published alongside it, and the estimator was
-calibrated against three weeks of its own output rather than against the
-datasheet. No configuration change is required; the estimates are on by
-default and can be turned off in the options.
+The hub gains its first derived sensors: how long until the battery is full, and how long until it reaches the reserve. Everything else in this release exists to make those two numbers trustworthy — the assumption behind each estimate is measured and published alongside it, and the estimator was calibrated against three weeks of its own output rather than against the datasheet. No configuration change is required; the estimates are on by default and can be turned off in the options.
 
 ### Added
 
@@ -62,18 +63,12 @@ For reference, on that plant:
 | discharge, all estimates | 13.3% | +3.8% |
 | charge, all estimates | 17.0% | +6.7% |
 
-Measured against the SoC rate actually observed over the 30 minutes following
-each estimate. "Steady power" means the power varied by less than 10% over the
-sample window and did not trend by more than 200 W over the following half
-hour; that is the regime the `high` confidence label is meant to identify.
+Measured against the SoC rate actually observed over the 30 minutes following each estimate. "Steady power" means the power varied by less than 10% over the
+sample window and did not trend by more than 200 W over the following half hour; that is the regime the `high` confidence label is meant to identify.
 
 ## [0.8.0] - 2026-08-07
 
-Home Assistant 2026.8 promoted entity ID renaming to a first-class action in
-the interface, added a user-configurable entity ID format and a **Recreate
-entity IDs** action on the device page. Renaming a source entity was always
-possible, but it is now something users will actually do — and this release
-makes the hub survive it. No configuration change is required.
+Home Assistant 2026.8 promoted entity ID renaming to a first-class action in the interface, added a user-configurable entity ID format and a **Recreate entity IDs** action on the device page. Renaming a source entity was always possible, but it is now something users will actually do — and this release makes the hub survive it. No configuration change is required.
 
 ### Fixed
 
@@ -200,7 +195,8 @@ makes the hub survive it. No configuration change is required.
 - Options flow to change priority and alert behavior without restart.
 - English and Italian translations.
 
-[Unreleased]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.6.2...v0.7.0
