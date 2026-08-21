@@ -1,11 +1,13 @@
 """Unit tests for BatteryRuntimeEstimator (battery runtime estimates)."""
 import os
 import sys
+from contextlib import contextmanager
 
 sys.path.insert(
     0, os.path.join(os.path.dirname(__file__), "..", "custom_components")
 )
 
+from huawei_fusion_hub import derived
 from huawei_fusion_hub.const import SOURCE_FUSION_SOLAR_PLUS, SOURCE_HUAWEI_SOLAR
 from huawei_fusion_hub.derived import (
     CAPACITY_FACTOR_CHARGE,
@@ -23,6 +25,23 @@ from huawei_fusion_hub.derived import (
 )
 
 CAPACITY = 10.0
+
+
+@contextmanager
+def _soc_rate_enabled(threshold=95.0):
+    """Lower SOC_RATE_THRESHOLD for one test.
+
+    The branch ships disabled, but its logic is still worth covering. Written
+    as a context manager rather than a pytest fixture because the CI workflow
+    runs this file with plain `python tests/test_derived.py`, which calls every
+    test function with no arguments.
+    """
+    original = derived.SOC_RATE_THRESHOLD
+    derived.SOC_RATE_THRESHOLD = threshold
+    try:
+        yield
+    finally:
+        derived.SOC_RATE_THRESHOLD = original
 
 
 def _feed(estimator, series, source=SOURCE_HUAWEI_SOLAR, capacity=CAPACITY):
@@ -139,13 +158,13 @@ def test_soc_rate_is_disabled():
     assert result.method == METHOD_ENERGY
 
 
-def test_soc_rate_takes_over_when_enabled(monkeypatch):
+def test_soc_rate_takes_over_when_enabled():
     # the branch itself still works: lower the threshold and it wins over
     # energy, which would still trust the nominal capacity
-    monkeypatch.setattr("huawei_fusion_hub.derived.SOC_RATE_THRESHOLD", 95.0)
     estimator = BatteryRuntimeEstimator(5.0, None)
     series = [(i * 60.0, 400, 96.0 + i * 0.1) for i in range(11)]
-    result = _feed(estimator, series)
+    with _soc_rate_enabled():
+        result = _feed(estimator, series)
     assert result.method == METHOD_SOC_RATE
     # 3 points missing at 0.1 %/min -> about 30 minutes
     assert 25 <= result.time_to_full <= 35
@@ -158,21 +177,21 @@ def test_soc_rate_not_used_below_threshold():
     assert result.method == METHOD_ENERGY
 
 
-def test_soc_rate_ignored_on_cloud_source(monkeypatch):
-    monkeypatch.setattr("huawei_fusion_hub.derived.SOC_RATE_THRESHOLD", 95.0)
+def test_soc_rate_ignored_on_cloud_source():
     estimator = BatteryRuntimeEstimator(5.0, None)
     series = [(i * 60.0, 400, 96.0 + i * 0.1) for i in range(11)]
-    result = _feed(estimator, series, source=SOURCE_FUSION_SOLAR_PLUS)
+    with _soc_rate_enabled():
+        result = _feed(estimator, series, source=SOURCE_FUSION_SOLAR_PLUS)
     assert result.method == METHOD_ENERGY
     assert result.window_seconds == WINDOW_CLOUD
 
 
-def test_soc_rate_ignored_when_soc_is_flat(monkeypatch):
+def test_soc_rate_ignored_when_soc_is_flat():
     # quantized SoC that never moves: no measurable slope, stay on energy
-    monkeypatch.setattr("huawei_fusion_hub.derived.SOC_RATE_THRESHOLD", 95.0)
     estimator = BatteryRuntimeEstimator(5.0, None)
     series = [(i * 60.0, 400, 97.0) for i in range(11)]
-    result = _feed(estimator, series)
+    with _soc_rate_enabled():
+        result = _feed(estimator, series)
     assert result.method == METHOD_ENERGY
 
 
