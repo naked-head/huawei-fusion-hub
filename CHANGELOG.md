@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- HACS now installs from the release ZIP asset instead of the repository
+  archive, so the download count reported by HACS reflects actual installations.
+
 ## [0.9.1] - 2026-08-21
 
 ### Added
