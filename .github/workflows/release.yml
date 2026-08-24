@@ -56,7 +56,17 @@ jobs:
 
       - name: Create release zip
         run: |
-          zip -r huawei_fusion_hub.zip custom_components/
+          cd custom_components/huawei_fusion_hub
+          zip -r "${GITHUB_WORKSPACE}/huawei_fusion_hub.zip" . \
+            -x '*.pyc' -x '__pycache__/*'
+
+      - name: Verify zip layout
+        run: |
+          unzip -l huawei_fusion_hub.zip | grep -qE " manifest\.json$" \
+            || { echo "manifest.json is not at the root of the zip"; exit 1; }
+          unzip -l huawei_fusion_hub.zip | grep -q "custom_components/" \
+            && { echo "zip must not contain the custom_components/ prefix"; exit 1; }
+          echo "Zip layout OK"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
