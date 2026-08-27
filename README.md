@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/naked-head/huawei-fusion-hub@main/images/icon@2x.png" alt="Huawei Fusion Hub" width="120">
+  <img src="https://cdn.jsdelivr.net/gh/naked-head/huawei-fusion-hub@main/custom_components/huawei_fusion_hub/brand/icon@2x.png" alt="Huawei Fusion Hub" width="120">
 </p>
 
 # Huawei Fusion Hub — Home Assistant Custom Integration
@@ -115,6 +115,72 @@ A hub sensor is created only when at least one configured source provides that q
 The FusionSolar column of the map covers both **Kiosk** mode (plant-level sensors) and **Northbound/OpenAPI** mode (per-device realtime data), so the hub takes full advantage of an OpenAPI account when available.
 
 📋 **Full entity correspondence table: [ENTITY_MAP.md](ENTITY_MAP.md)**
+
+---
+
+## Battery runtime estimates
+
+The hub derives two sensors from the battery power and state of charge it already aggregates:
+
+| Entity | Meaning |
+|---|---|
+| `sensor.hf_hub_battery_estimated_time_to_full` | time until the battery reaches 100%, while charging |
+| `sensor.hf_hub_battery_estimated_time_to_minimum` | time until it reaches the configured reserve, while discharging |
+
+Only one of the two is ever available at a time, and **neither publishes anything while the battery is idle** (below 100 W) or when the arithmetic exceeds 24 hours. Just above the idle threshold a linear estimate reaches tens of hours, and a value clamped to a ceiling would look like a real reading.
+
+They are computed from a rolling in-memory window of samples — 15 minutes on the local Modbus source, 20 minutes on cloud sources — so both stay `unknown` for the first few minutes after a restart. No extra polling and no recorder dependency.
+
+### What the estimate assumes
+
+Every estimate rests on one assumption: **that the current charge or discharge rate holds until the target**. A car starting to charge, an oven switching on, or a cloud passing over the array all invalidate it.
+
+Rather than hide that, the hub measures it and publishes it alongside:
+
+| Attribute | Meaning |
+|---|---|
+| `power_variation` | how much the battery power varied over the window, as a percentage of its own mean |
+| `confidence` | `high`, `medium` or `low`, derived from `power_variation` and how full the sample window is |
+| `samples`, `window_seconds` | how much history the estimate is based on |
+| `estimation_method` | how it was computed — currently always `energy` |
+| `capacity_kwh`, `capacity_factor` | the rated capacity used, and the conversion factor applied to it |
+| `source` | which source integration supplied the underlying values |
+
+`confidence: low` right after a sudden change in load is the system working, not failing: it means the window still holds the old regime and the number should not be trusted yet. It recovers within a few minutes.
+
+### Configuring the estimates
+
+Under *Settings → Devices & Services → Huawei Fusion Hub → Configure*:
+
+- **Enable the estimates** — on by default. Nothing else depends on them.
+- **Minimum charge level** — the SoC the discharge estimate counts down to, 5% by default. Set it to whatever your inverter actually stops at.
+- **Battery capacity override** — only needed when the source does not publish a rated capacity. This is the **rated** capacity of the pack, not a figure you measured yourself: the conversion factor below is applied on top of it, so entering an observed value applies the correction twice.
+
+### On accuracy
+
+The state of charge is a property of the battery pack, but the power register is measured upstream of the DC conversion, so the two are not the same energy. The rated capacity is therefore scaled by a conversion factor before being divided by the current power.
+
+That factor was calibrated on a single installation — one SUN2000 inverter with a LUNA2000 10 kWh battery — over three weeks and roughly 15000 published estimates. **It is a property of a particular inverter and battery pair, not of this integration**, and it will be wrong to some degree elsewhere. Deriving it per installation, from the battery's own energy counters, is [planned](https://github.com/naked-head/huawei-fusion-hub/issues).
+
+On that plant, measured against the SoC rate actually observed over the following 30 minutes: 11% median error discharging and 4% charging while the power was steady, 13% and 17% across all estimates. Treat those as the reason the defaults are what they are, not as a specification for your own system — and if your own measurements disagree, that is worth an issue.
+
+---
+
+## Entity IDs
+
+Every hub entity is pinned to `sensor.hf_hub_<key>`, where `<key>` is the canonical name listed in [ENTITY_MAP.md](ENTITY_MAP.md). The entity ID is set explicitly rather than derived from the friendly name, so it stays the same whatever your Home Assistant language is, whichever source is currently supplying the value, and however you rename things in the interface.
+
+That is the point of the integration: an automation written against `sensor.hf_hub_battery_soc` keeps working when the Modbus connection drops and the value starts arriving from the cloud instead.
+
+### The drift repair issue
+
+Home Assistant 2026.8 made renaming entity IDs a first-class action and added **Recreate entity IDs** to the device page. That second one regenerates the ID from the area, device and entity names whenever a custom friendly name is set, which drops the `hf_hub_` prefix. Neither change is undone on restart, so without a check the drift would be completely silent — and every automation, template and dashboard card pointing at the old ID would quietly stop resolving.
+
+The hub compares each entity ID against its unique ID at startup and raises a repair issue listing the ones that no longer match. **Renaming a hub entity is allowed** — nothing breaks inside the integration — but the repair issue exists to make sure it was your decision and not a side effect of a bulk action.
+
+To resolve it, either rename the affected entities back to `sensor.hf_hub_<key>` (the issue lists the expected ID for each one), or leave them and update whatever refers to them. The issue clears by itself at the next restart once no entity is drifting.
+
+Changing the **friendly name** of a hub entity is always safe: only the entity ID is checked.
 
 ---
 

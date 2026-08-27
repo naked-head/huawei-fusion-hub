@@ -136,6 +136,12 @@ jobs:
 
       - name: Create release zip
         run: |
+          # GPL-3.0 section 4: the license text travels with the code. HACS
+          # unpacks nothing but this archive, so a LICENSE left in the
+          # repository root never reaches an installed copy. Copied into the
+          # CI checkout only - the repository keeps a single LICENSE at its
+          # root.
+          cp LICENSE custom_components/huawei_fusion_hub/
           cd custom_components/huawei_fusion_hub
           zip -r "${GITHUB_WORKSPACE}/huawei_fusion_hub.zip" . \
             -x '*.pyc' -x '__pycache__/*'
@@ -154,6 +160,11 @@ jobs:
           fi
           if unzip -l huawei_fusion_hub.zip | grep -q "custom_components/"; then
             echo "::error::the zip must not contain the custom_components/ prefix."
+            unzip -l huawei_fusion_hub.zip
+            exit 1
+          fi
+          if ! unzip -l huawei_fusion_hub.zip | grep -qE " LICENSE$"; then
+            echo "::error::LICENSE is missing from the zip."
             unzip -l huawei_fusion_hub.zip
             exit 1
           fi
