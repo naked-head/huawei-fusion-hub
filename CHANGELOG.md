@@ -7,8 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-08-28
+
+Housekeeping release cut in response to the HACS default repository review. No
+functional change to the integration itself.
+
+### Added
+
+- README sections for the battery runtime estimates and for how hub entity IDs
+  are assigned. The derived-sensors notification and the entity ID drift repair
+  issue both linked to anchors that did not exist, so following either one
+  landed the reader at the top of the document with nothing to indicate where
+  to look.
+
 ### Changed
-- Relicensed from MIT to GPL-3.0-or-later.
+
+- Relicensed from MIT to GPL-3.0-or-later. The change reached `main` before
+  0.9.2 was tagged but not the tag itself, so that release shipped a LICENSE
+  and a README that disagreed with each other. Versions up to and including
+  0.9.2 remain available under MIT.
+- The release archive now carries the license text. It lived in the repository
+  root only, and HACS unpacks nothing but the archive, so an installed copy
+  received no license at all.
+- Minimum Home Assistant version raised to 2026.3.0, the release from which
+  in-tree `brand/` icons are served. Below it the integration declared support
+  while showing no icon.
+
+### Removed
+
+- The `images/` copies of the three brand assets, byte-identical duplicates of
+  the files under `custom_components/huawei_fusion_hub/brand/`. The README now
+  points at those.
 
 ## [0.9.2] - 2026-08-24
 
@@ -204,7 +233,8 @@ Home Assistant 2026.8 promoted entity ID renaming to a first-class action in the
 - Options flow to change priority and alert behavior without restart.
 - English and Italian translations.
 
-[Unreleased]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.9.3...HEAD
+[0.9.3]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.8.0...v0.9.0
