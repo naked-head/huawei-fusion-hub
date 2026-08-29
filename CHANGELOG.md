@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-08-28
+
+Follow-up to the HACS default listing. No functional change to the integration
+itself.
+
+### Changed
+
+- The README now documents installation from the HACS catalogue instead of
+  walking through adding a custom repository, and the badge says Default.
+
 ## [0.9.3] - 2026-08-28
 
 Housekeeping release cut in response to the HACS default repository review. No

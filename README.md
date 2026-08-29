@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/naked-head/huawei-fusion-hub@main/custom_components/huawei_fusion_hub/brand/icon@2x.png" alt="Huawei Fusion Hub" width="120">
+      <img src="https://cdn.jsdelivr.net/gh/naked-head/huawei-fusion-hub@HEAD/custom_components/huawei_fusion_hub/brand/icon@2x.png" alt="Huawei Fusion Hub" width="120">
 </p>
 
 # Huawei Fusion Hub — Home Assistant Custom Integration
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/hacs/default)
 [![GitHub Release](https://img.shields.io/github/release/naked-head/huawei-fusion-hub.svg)](https://github.com/naked-head/huawei-fusion-hub/releases)
 [![Validate](https://github.com/naked-head/huawei-fusion-hub/actions/workflows/validate.yml/badge.svg)](https://github.com/naked-head/huawei-fusion-hub/actions/workflows/validate.yml)
 [![License](https://img.shields.io/github/license/naked-head/huawei-fusion-hub.svg)](https://github.com/naked-head/huawei-fusion-hub/blob/main/LICENSE)
@@ -45,10 +45,10 @@ A [Home Assistant](https://www.home-assistant.io/) integration that aggregates d
 
 ### Via HACS (recommended)
 
-1. HACS → Integrations → ⋮ menu → **Custom repositories**
-2. Add `https://github.com/naked-head/huawei-fusion-hub`, category **Integration**
-3. Search for "Huawei Fusion Hub" and install
-4. Restart Home Assistant
+1. Open HACS and search for **Huawei Fusion Hub**
+2. Install, then restart Home Assistant
+
+The integration is in the HACS default catalogue: no custom repository needed.
 
 ### Manual
 
