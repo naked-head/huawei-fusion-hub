@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 - Links to other files in the repository are absolute, so they work in the README rendered by HACS. Relative targets are blanked by Home Assistant's markdown sanitiser, which left the links dead exactly where users read the page.
 
-## [0.9.4] - 2026-08-28
+## [0.9.4] - 2026-08-29
 
 Follow-up to the HACS default listing. No functional change to the integration itself.
 
