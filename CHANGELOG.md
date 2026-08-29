@@ -2,52 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- Links to other files in the repository are absolute, so they work in the README rendered by HACS. Relative targets are blanked by Home Assistant's markdown sanitiser, which left the links dead exactly where users read the page.
+
 ## [0.9.4] - 2026-08-28
 
-Follow-up to the HACS default listing. No functional change to the integration
-itself.
+Follow-up to the HACS default listing. No functional change to the integration itself.
 
 ### Changed
 
-- The README now documents installation from the HACS catalogue instead of
-  walking through adding a custom repository, and the badge says Default.
+- The README now documents installation from the HACS catalogue instead of walking through adding a custom repository, and the badge says Default.
 
 ## [0.9.3] - 2026-08-28
 
-Housekeeping release cut in response to the HACS default repository review. No
-functional change to the integration itself.
+Housekeeping release cut in response to the HACS default repository review. No functional change to the integration itself.
 
 ### Added
 
-- README sections for the battery runtime estimates and for how hub entity IDs
-  are assigned. The derived-sensors notification and the entity ID drift repair
-  issue both linked to anchors that did not exist, so following either one
-  landed the reader at the top of the document with nothing to indicate where
-  to look.
+- README sections for the battery runtime estimates and for how hub entity IDs are assigned. The derived-sensors notification and the entity ID drift repair issue both linked to anchors that did not exist, so following either one landed the reader at the top of the document with nothing to indicate where to look.
 
 ### Changed
 
-- Relicensed from MIT to GPL-3.0-or-later. The change reached `main` before
-  0.9.2 was tagged but not the tag itself, so that release shipped a LICENSE
-  and a README that disagreed with each other. Versions up to and including
-  0.9.2 remain available under MIT.
-- The release archive now carries the license text. It lived in the repository
-  root only, and HACS unpacks nothing but the archive, so an installed copy
-  received no license at all.
-- Minimum Home Assistant version raised to 2026.3.0, the release from which
-  in-tree `brand/` icons are served. Below it the integration declared support
-  while showing no icon.
+- Relicensed from MIT to GPL-3.0-or-later. The change reached `main` before 0.9.2 was tagged but not the tag itself, so that release shipped a LICENSE and a README that disagreed with each other. Versions up to and including 0.9.2 remain available under MIT.
+- The release archive now carries the license text. It lived in the repository root only, and HACS unpacks nothing but the archive, so an installed copy received no license at all.
+- Minimum Home Assistant version raised to 2026.3.0, the release from which in-tree `brand/` icons are served. Below it the integration declared support while showing no icon.
 
 ### Removed
 
-- The `images/` copies of the three brand assets, byte-identical duplicates of
-  the files under `custom_components/huawei_fusion_hub/brand/`. The README now
-  points at those.
+- The `images/` copies of the three brand assets, byte-identical duplicates of the files under `custom_components/huawei_fusion_hub/brand/`. The README now points at those.
 
 ## [0.9.2] - 2026-08-24
 
