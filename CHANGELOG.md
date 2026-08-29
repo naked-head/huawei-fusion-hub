@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-08-28
+
+Follow-up to the HACS default listing. No functional change to the integration
+itself.
+
+### Changed
+
+- The README now documents installation from the HACS catalogue instead of
+  walking through adding a custom repository, and the badge says Default.
+
 ## [0.9.3] - 2026-08-28
 
 Housekeeping release cut in response to the HACS default repository review. No
@@ -233,7 +243,8 @@ Home Assistant 2026.8 promoted entity ID renaming to a first-class action in the
 - Options flow to change priority and alert behavior without restart.
 - English and Italian translations.
 
-[Unreleased]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.9.3...HEAD
+[Unreleased]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.9.4...HEAD
+[0.9.4]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/naked-head/huawei-fusion-hub/compare/v0.9.0...v0.9.1
